@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KisanDrone Live Map — Hyper-local Airspace Coordination</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root {
+    --bg: #0A0F14;
+    --surface: #111821;
+    --surface-2: #1A2430;
+    --line: #2A3746;
+    --line-bright: #3D4E62;
+    --text: #E8EEF5;
+    --text-soft: #9EB0C4;
+    --text-mute: #5A6A7E;
+    --cyan: #00D4C8;
+    --cyan-dim: #00796E;
+    --teal: #4FD1C5;
+    --orange: #FF8A3D;
+    --red: #FF4560;
+    --red-bg: rgba(255, 69, 96, 0.12);
+    --amber: #FFB84D;
+    --amber-bg: rgba(255, 184, 77, 0.12);
+    --green: #4ADE80;
+    --green-bg: rgba(74, 222, 128, 0.12);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100vh;
+  }
+
+  .display { font-family: 'Archivo', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* ============ LANDING / ROOM SELECTION ============ */
+  .landing {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at top, #0E1822 0%, var(--bg) 60%);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  .landing::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0, 212, 200, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 212, 200, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    pointer-events: none;
+  }
+  .landing.hidden { display: none; }
+  .landing-inner {
+    max-width: 900px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  }
+  .landing-head {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .logo-mark {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px 8px 12px;
+    background: rgba(0, 212, 200, 0.08);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 100px;
+    margin-bottom: 24px;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cyan);
+    font-weight: 600;
+  }
+  .logo-mark .dot {
+    width: 8px; height: 8px;
+    background: var(--cyan);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--cyan);
+    animation: pulse 1.8s infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .landing h1 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: clamp(36px, 6vw, 64px);
+    letter-spacing: -0.04em;
+    line-height: 0.95;
+    margin-bottom: 16px;
+  }
+  .landing h1 em {
+    font-style: normal;
+    color: var(--cyan);
+    font-family: 'Archivo', sans-serif;
+  }
+  .landing .sub {
+    color: var(--text-soft);
+    font-size: 16px;
+    max-width: 580px;
+    margin: 0 auto;
+  }
+
+  .mode-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .mode-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+  .mode-card:hover {
+    border-color: var(--cyan-dim);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 212, 200, 0.1);
+  }
+  .mode-card .ico {
+    font-size: 22px;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .mode-card h3 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .mode-card p {
+    font-size: 13px;
+    color: var(--text-soft);
+    line-height: 1.5;
+  }
+  .mode-card .tag {
+    position: absolute;
+    top: 14px; right: 14px;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--green-bg);
+    color: var(--green);
+  }
+  .mode-card .tag.warn { background: var(--amber-bg); color: var(--amber); }
+
+  .landing-foot {
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11.5px;
+    color: var(--text-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ============ MAIN APP ============ */
+  .app { display: none; height: 100vh; flex-direction: column; }
+  .app.active { display: flex; }
+
+  /* Top bar */
+  .topbar {
+    height: 56px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 20px;
+    z-index: 20;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    padding-right: 20px;
+    border-right: 1px solid var(--line);
+    height: 100%;
+    align-self: center;
+    padding-top: 18px;
+  }
+  .brand .icon {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--cyan), var(--teal));
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bg);
+    font-weight: 900;
+  }
+  .brand span { color: var(--cyan); }
+
+  .room-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+  }
+  .room-info .block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .room-info .k {
+    color: var(--text-mute);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .room-info .v {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .room-info .v.ok { color: var(--green); }
+
+  .topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+  /* Main workspace */
+  .workspace {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 320px 1fr 340px;
+    overflow: hidden;
+  }
+
+  /* Sidebar left */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel {
+    border-bottom: 1px solid var(--line);
+    padding: 18px 20px;
+  }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .panel-head h3 {
+    font-family: 'Archivo', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+  }
+  .panel-head .chip {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    background: rgba(0, 212, 200, 0.08);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--cyan-dim);
+  }
+
+  /* Own drone telemetry */
+  .own-tel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .tel-cell {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .tel-cell .k {
+    font-size: 10px;
+    color: var(--text-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .tel-cell .v {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--cyan);
+    line-height: 1;
+  }
+  .tel-cell .v .unit { color: var(--text-mute); font-weight: 400; font-size: 11px; margin-left: 4px; }
+
+  /* Drone list */
+  .drone-list { display: flex; flex-direction: column; gap: 6px; }
+  .drone-item {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .drone-item:hover { border-color: var(--line-bright); }
+  .drone-item.active { border-color: var(--cyan); background: rgba(0, 212, 200, 0.06); }
+  .drone-item.me { border-color: var(--cyan-dim); background: rgba(0, 212, 200, 0.04); }
+  .drone-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.05);
+  }
+  .drone-item .name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .drone-item .meta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-mute);
+    margin-top: 2px;
+  }
+  .drone-item .dist {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-soft);
+  }
+
+  /* Map */
+  .map-wrap {
+    position: relative;
+    background: #050A10;
+  }
+  #map { height: 100%; width: 100%; background: #050A10; }
+
+  /* Leaflet dark override */
+  .leaflet-container { background: #050A10; font-family: 'DM Sans', sans-serif; }
+  .leaflet-tile { filter: hue-rotate(180deg) invert(1) brightness(0.85) contrast(0.9) saturate(0.7); }
+  .leaflet-control-attribution { background: rgba(10,15,20,0.8) !important; color: var(--text-mute) !important; border: 1px solid var(--line) !important; }
+  .leaflet-control-attribution a { color: var(--text-soft) !important; }
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line) !important;
+  }
+  .leaflet-control-zoom a:hover { background: var(--surface-2) !important; }
+  .leaflet-popup-content-wrapper {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--line-bright);
+    border-radius: 8px !important;
+  }
+  .leaflet-popup-tip { background: var(--surface) !important; }
+
+  /* Drone marker SVG wrapper */
+  .drone-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .drone-marker .body {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.3), 0 0 20px currentColor;
+    position: relative;
+  }
+  .drone-marker .body::before {
+    content: '';
+    position: absolute;
+    width: 6px; height: 10px;
+    background: rgba(255,255,255,0.95);
+    top: 50%; left: 50%;
+    transform-origin: center;
+    border-radius: 2px;
+  }
+  .drone-marker.me .body {
+    width: 32px; height: 32px;
+    border-width: 3px;
+  }
+  .drone-marker .ping {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    animation: ping 2s infinite;
+    width: 24px; height: 24px;
+    opacity: 0;
+  }
+  @keyframes ping {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  .drone-marker .label {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 50%; transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(10,15,20,0.85);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid var(--line);
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  /* HUD overlays */
+  .hud {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .hud > * { pointer-events: auto; }
+
+  .hud-top {
+    top: 16px; left: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    max-width: 400px;
+  }
+  .alert {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--red);
+    padding: 10px 14px;
+    border-radius: 6px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12.5px;
+    box-shadow: var(--shadow);
+    animation: slideRight 0.3s ease;
+    max-width: 100%;
+  }
+  @keyframes slideRight { from { transform: translateX(-12px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .alert.amber { border-left-color: var(--amber); }
+  .alert.red { border-left-color: var(--red); background: linear-gradient(90deg, rgba(255, 69, 96, 0.15), var(--surface) 60%); }
+  .alert .ico { font-size: 14px; margin-top: 1px; }
+  .alert .title {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 2px;
+  }
+  .alert.amber .title { color: var(--amber); }
+  .alert .body { color: var(--text); line-height: 1.4; }
+  .alert .body .mono { color: var(--cyan); font-size: 11px; }
+  .alert .close { margin-left: auto; background: none; border: none; color: var(--text-mute); cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1; }
+  .alert .close:hover { color: var(--text); }
+
+  .hud-bottom-right {
+    bottom: 16px; right: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .hud-btn {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font: 500 12px 'DM Sans';
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow);
+    transition: all 0.15s;
+  }
+  .hud-btn:hover { border-color: var(--cyan-dim); }
+  .hud-btn.primary {
+    background: var(--cyan);
+    color: var(--bg);
+    border-color: var(--cyan);
+    font-weight: 600;
+  }
+  .hud-btn.primary:hover { background: var(--teal); }
+  .hud-btn.danger { border-color: var(--red); color: var(--red); }
+
+  .hud-scale {
+    position: absolute;
+    bottom: 16px; left: 16px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--text-soft);
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hud-scale .label { color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.08em; font-size: 9.5px; }
+
+  /* Right panel */
+  .rightpanel {
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+    overflow-y: auto;
+  }
+
+  /* Legend */
+  .legend { display: flex; flex-direction: column; gap: 8px; }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-soft);
+  }
+  .legend-row .swatch {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+  .legend-row .line-sw {
+    width: 20px; height: 2px;
+    background: currentColor;
+  }
+  .legend-row .dash-sw {
+    width: 20px; height: 0;
+    border-top: 2px dashed currentColor;
+  }
+
+  /* No-fly list */
+  .nofly-list { display: flex; flex-direction: column; gap: 6px; }
+  .nofly-item {
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--orange);
+    border-radius: 6px;
+    font-size: 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .nofly-item .name { font-weight: 500; color: var(--text); }
+  .nofly-item .type { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.08em; }
+  .nofly-item .radius { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--orange); }
+
+  /* Stat row */
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .stat {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .stat .v {
+    font-family: 'Archivo', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--cyan);
+    line-height: 1;
+  }
+  .stat .k {
+    font-size: 10px;
+    color: var(--text-mute);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+  }
+
+  /* Language toggle */
+  .lang-toggle {
+    display: flex;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .lang-toggle button {
+    background: none;
+    border: none;
+    color: var(--text-mute);
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    font: inherit;
+  }
+  .lang-toggle button.active {
+    background: var(--cyan);
+    color: var(--bg);
+  }
+
+  /* QR placeholder */
+  .qr-box {
+    width: 180px; height: 180px;
+    background: white;
+    margin: 20px auto;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qr-pattern {
+    width: 100%; height: 100%;
+    background-image:
+      repeating-linear-gradient(0deg, black 0 6px, transparent 6px 12px),
+      repeating-linear-gradient(90deg, black 0 6px, transparent 6px 12px);
+    position: relative;
+  }
+  .qr-pattern::before, .qr-pattern::after {
+    content: '';
+    position: absolute;
+    width: 36px; height: 36px;
+    border: 6px solid black;
+    background: white;
+  }
+  .qr-pattern::before { top: 4px; left: 4px; }
+  .qr-pattern::after { top: 4px; right: 4px; }
+  .qr-corner {
+    position: absolute;
+    bottom: 4px; left: 4px;
+    width: 36px; height: 36px;
+    border: 6px solid black;
+    background: white;
+  }
+
+  /* local-room modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    z-index: 400;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-bg.active { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 28px;
+    max-width: 440px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal-box h2 {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+  }
+  .modal-box p { color: var(--text-soft); font-size: 13px; }
+  .modal-box .hotspot-info {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 16px;
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+  }
+  .modal-box .hotspot-info .row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .modal-box .hotspot-info .k { color: var(--text-mute); }
+  .modal-box .hotspot-info .v { color: var(--cyan); }
+
+  /* Utility */
+  .btn {
+    font: 500 13px 'DM Sans';
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { border-color: var(--line-bright); }
+  .btn.primary { background: var(--cyan); color: var(--bg); border-color: var(--cyan); font-weight: 600; }
+  .btn.primary:hover { background: var(--teal); }
+  .btn.sm { font-size: 11.5px; padding: 6px 10px; }
+  .btn.danger { color: var(--red); border-color: var(--red); background: transparent; }
+
+  /* Responsive fallback */
+  @media (max-width: 1100px) {
+    .workspace { grid-template-columns: 260px 1fr 280px; }
+  }
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 1fr; }
+    .sidebar, .rightpanel { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ========= LANDING ========= -->
+<div class="landing" id="landing">
+  <div class="landing-inner">
+    <div class="landing-head">
+      <div class="logo-mark">
+        <span class="dot"></span>
+        KisanDrone <span style="color:var(--text-soft);">//</span> Hyper-local Airspace
+      </div>
+      <h1 class="display">Shared sky for<br>village <em>agri drones</em>.</h1>
+      <p class="sub">A peer-to-peer low-altitude coordination layer for agricultural drone operators. Live positions, predicted paths, no-fly zones — within a 3–5 km radius, works with or without internet.</p>
+    </div>
+
+    <div class="mode-grid">
+      <div class="mode-card" onclick="enterApp('CLOUD')">
+        <div class="ico">☁️</div>
+        <div class="tag">Recommended</div>
+        <h3>Cloud Room</h3>
+        <p>Server-coordinated room, auto-joins everyone within 5 km. Best when mobile data is stable.</p>
+      </div>
+      <div class="mode-card" onclick="showLocalHost()">
+        <div class="ico">📡</div>
+        <div class="tag warn">Low Connectivity</div>
+        <h3>Create Local Hotspot</h3>
+        <p>Host a peer-to-peer airspace room over Wi-Fi. Other operators scan QR to join.</p>
+      </div>
+      <div class="mode-card" onclick="enterApp('LOCAL_JOIN')">
+        <div class="ico">🔗</div>
+        <div class="tag warn">Low Connectivity</div>
+        <h3>Join Local Room</h3>
+        <p>Scan a host's QR code or connect to their hotspot SSID to enter their airspace room.</p>
+      </div>
+    </div>
+
+    <div class="landing-foot">
+      <div>Prototype · Hackathon build</div>
+      <div>Coverage: Tamil Nadu · Default location: Thanjavur rice belt</div>
+    </div>
+  </div>
+</div>
+
+<!-- Local host hotspot modal -->
+<div class="modal-bg" id="localModal">
+  <div class="modal-box">
+    <h2 class="display">Local Airspace Room Active</h2>
+    <p>Share this with nearby operators. They connect to your hotspot and auto-join the room.</p>
+    <div class="qr-box"><div class="qr-pattern"><div class="qr-corner"></div></div></div>
+    <div class="hotspot-info">
+      <div class="row"><span class="k">SSID</span><span class="v">KisanDrone_TNJ01</span></div>
+      <div class="row"><span class="k">PASSWORD</span><span class="v">fly8848</span></div>
+      <div class="row"><span class="k">HOST IP</span><span class="v">192.168.43.1:8080</span></div>
+      <div class="row"><span class="k">ROOM</span><span class="v">TNJ-RICE-BELT-01</span></div>
+    </div>
+    <button class="btn primary" style="margin-top:20px; width:100%;" onclick="enterApp('LOCAL_HOST')">Enter Airspace →</button>
+  </div>
+</div>
+
+<!-- ========= APP ========= -->
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="brand">
+      <div class="icon">K</div>
+      Kisan<span>Drone</span>
+    </div>
+
+    <div class="room-info">
+      <div class="block">
+        <div class="k" data-i18n="mode">Mode</div>
+        <div class="v ok" id="roomMode">CLOUD · Connected</div>
+      </div>
+      <div class="block">
+        <div class="k" data-i18n="room">Room</div>
+        <div class="v" id="roomId">TNJ-RICE-BELT-01</div>
+      </div>
+      <div class="block">
+        <div class="k" data-i18n="operators">Operators</div>
+        <div class="v" id="operatorCount">5 online</div>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="lang-toggle">
+        <button class="active" onclick="setLang('en')">EN</button>
+        <button onclick="setLang('ta')">தமிழ்</button>
+      </div>
+      <button class="btn danger sm" onclick="exitApp()" data-i18n="leave">⏻ End Flight</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar">
+      <div class="panel">
+        <div class="panel-head">
+          <h3 data-i18n="myDrone">My Drone</h3>
+          <span class="chip" id="myCallsign">DRN-01</span>
+        </div>
+        <div class="own-tel">
+          <div class="tel-cell">
+            <div class="k" data-i18n="altitude">Altitude</div>
+            <div class="v"><span id="myAlt">45</span><span class="unit">m</span></div>
+          </div>
+          <div class="tel-cell">
+            <div class="k" data-i18n="speed">Speed</div>
+            <div class="v"><span id="mySpeed">6.2</span><span class="unit">m/s</span></div>
+          </div>
+          <div class="tel-cell">
+            <div class="k" data-i18n="heading">Heading</div>
+            <div class="v"><span id="myHdg">118</span><span class="unit">°</span></div>
+          </div>
+          <div class="tel-cell">
+            <div class="k" data-i18n="gps">GPS</div>
+            <div class="v" style="font-size: 14px;"><span id="myFix" style="color:var(--green);">FIX</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex:1;">
+        <div class="panel-head">
+          <h3 data-i18n="nearbyDrones">Nearby Drones</h3>
+          <span class="chip" id="nearbyCount">4</span>
+        </div>
+        <div class="drone-list" id="droneList"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3 data-i18n="simControls">Simulation Controls</h3>
+        </div>
+        <button class="btn sm" style="width:100%; margin-bottom:6px;" onclick="addVirtualDrone()" data-i18n="addDrone">+ Add Virtual Drone</button>
+        <button class="btn sm" style="width:100%; margin-bottom:6px;" onclick="forceCollisionScenario()" data-i18n="testCollision">▲ Simulate Collision Risk</button>
+        <button class="btn sm" style="width:100%;" onclick="forceNoFlyScenario()" data-i18n="testNoFly">◆ Simulate No-Fly Entry</button>
+      </div>
+    </aside>
+
+    <!-- MAP -->
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div class="hud hud-top" id="alertStack"></div>
+      <div class="hud hud-bottom-right">
+        <button class="hud-btn primary" id="flightBtn" onclick="toggleFlight()">▶ <span data-i18n="startFlight">Start Flight</span></button>
+        <button class="hud-btn" onclick="recenterMap()">◎ <span data-i18n="recenter">Recenter</span></button>
+      </div>
+      <div class="hud-scale">
+        <span class="label" data-i18n="radius">Radius</span>
+        <span>5 km</span>
+        <span style="color:var(--text-mute);">·</span>
+        <span class="label" data-i18n="tick">Update</span>
+        <span>200ms</span>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <aside class="rightpanel">
+      <div class="panel">
+        <div class="panel-head">
+          <h3 data-i18n="airspaceStats">Airspace Stats</h3>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="statActive">5</div><div class="k" data-i18n="activeDrones">Active Drones</div></div>
+          <div class="stat"><div class="v" id="statAlerts">0</div><div class="k" data-i18n="liveAlerts">Live Alerts</div></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat"><div class="v" id="statNofly">4</div><div class="k" data-i18n="noFlyZones">No-Fly Zones</div></div>
+          <div class="stat"><div class="v" id="statAvgAlt">—</div><div class="k" data-i18n="avgAlt">Avg Alt (m)</div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3 data-i18n="legend">Legend</h3>
+        </div>
+        <div class="legend">
+          <div class="legend-row"><div class="swatch" style="background:#00D4C8;"></div><span data-i18n="legMe">Your drone</span></div>
+          <div class="legend-row"><div class="swatch" style="background:#FFB84D;"></div><span data-i18n="legOther">Other operator</span></div>
+          <div class="legend-row"><div class="swatch" style="background:var(--red);"></div><span data-i18n="legRisk">Drone in alert state</span></div>
+          <div class="legend-row" style="color:#FFB84D;"><div class="dash-sw"></div><span data-i18n="legPath">Predicted path (10s)</span></div>
+          <div class="legend-row" style="color:var(--red);"><div class="swatch" style="background:rgba(255,69,96,0.25); border-color:var(--red);"></div><span data-i18n="legNofly">No-fly zone</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3 data-i18n="noFlyList">No-Fly Zones</h3>
+          <span class="chip">4</span>
+        </div>
+        <div class="nofly-list" id="noflyList"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// I18N
+// ============================================================
+const I18N = {
+  en: {
+    mode: 'Mode', room: 'Room', operators: 'Operators',
+    myDrone: 'My Drone', altitude: 'Altitude', speed: 'Speed', heading: 'Heading', gps: 'GPS',
+    nearbyDrones: 'Nearby Drones', simControls: 'Simulation Controls',
+    addDrone: '+ Add Virtual Drone', testCollision: '▲ Simulate Collision Risk', testNoFly: '◆ Simulate No-Fly Entry',
+    startFlight: 'Start Flight', stopFlight: 'Stop Flight', recenter: 'Recenter',
+    radius: 'Radius', tick: 'Update', leave: '⏻ End Flight',
+    airspaceStats: 'Airspace Stats', activeDrones: 'Active Drones', liveAlerts: 'Live Alerts',
+    noFlyZones: 'No-Fly Zones', avgAlt: 'Avg Alt (m)',
+    legend: 'Legend', legMe: 'Your drone', legOther: 'Other operator', legRisk: 'Drone in alert state',
+    legPath: 'Predicted path (10s)', legNofly: 'No-fly zone',
+    noFlyList: 'No-Fly Zones'
+  },
+  ta: {
+    mode: 'முறை', room: 'அறை', operators: 'இயக்குநர்கள்',
+    myDrone: 'எனது ட்ரோன்', altitude: 'உயரம்', speed: 'வேகம்', heading: 'திசை', gps: 'ஜிபிஎஸ்',
+    nearbyDrones: 'அருகில் உள்ள ட்ரோன்கள்', simControls: 'சிமுலேஷன் கட்டுப்பாடுகள்',
+    addDrone: '+ புதிய ட்ரோன் சேர்', testCollision: '▲ மோதல் சோதனை', testNoFly: '◆ தடை மண்டலம் சோதனை',
+    startFlight: 'பறக்க தொடங்கு', stopFlight: 'பறத்தலை நிறுத்து', recenter: 'மையப்படுத்து',
+    radius: 'ஆரம்', tick: 'புதுப்பிப்பு', leave: '⏻ பறத்தலை முடி',
+    airspaceStats: 'வானளாவிய புள்ளிவிவரம்', activeDrones: 'செயல்பாட்டில்', liveAlerts: 'நேரடி எச்சரிக்கை',
+    noFlyZones: 'தடை மண்டலங்கள்', avgAlt: 'சராசரி உயரம் (மீ)',
+    legend: 'குறியீடு', legMe: 'உங்கள் ட்ரோன்', legOther: 'மற்ற இயக்குநர்', legRisk: 'எச்சரிக்கை நிலையில்',
+    legPath: 'எதிர்பார்க்கப்பட்ட பாதை (10வி)', legNofly: 'தடை மண்டலம்',
+    noFlyList: 'தடை மண்டலங்கள்'
+  }
+};
+let currentLang = 'en';
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (I18N[lang][key]) el.textContent = I18N[lang][key];
+  });
+  document.querySelectorAll('.lang-toggle button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.lang-toggle button[onclick*="'${lang}'"]`).classList.add('active');
+  renderDroneList();
+  renderNoflyList();
+}
+
+// ============================================================
+// SETUP — Thanjavur rice belt area
+// ============================================================
+const CENTER = { lat: 10.7870, lng: 79.1378 }; // Thanjavur
+let map, flightRunning = true, tickInterval;
+
+// No-fly zones (realistic rural examples)
+const NOFLY_ZONES = [
+  { id: 'NFZ-SCH-01', name: 'Govt. Higher Sec. School', name_ta: 'அரசு மேல்நிலைப் பள்ளி', type: 'school', lat: 10.7920, lng: 79.1425, radius: 250, color: '#FF4560' },
+  { id: 'NFZ-TMP-02', name: 'Brihadeeswara Temple', name_ta: 'பிரகதீஸ்வரர் கோயில்', type: 'temple', lat: 10.7826, lng: 79.1318, radius: 400, color: '#FF4560' },
+  { id: 'NFZ-PWR-03', name: 'HT Power Line Corridor', name_ta: 'மின் கம்பம் வழி', type: 'powerline', lat: 10.7790, lng: 79.1465, radius: 180, color: '#FF8A3D' },
+  { id: 'NFZ-HOS-04', name: 'Primary Health Centre', name_ta: 'ஆரம்ப சுகாதார மையம்', type: 'hospital', lat: 10.7955, lng: 79.1315, radius: 200, color: '#FF4560' },
+];
+
+// Drones — one is "me", rest are other operators
+let drones = [
+  { id: 'DRN-01', me: true, callsign: 'DRN-01', op: 'You', lat: 10.7870, lng: 79.1378, alt: 45, speed: 6.2, hdg: 118, color: '#00D4C8', history: [], active: true, alert: null },
+  { id: 'DRN-07', callsign: 'DRN-07', op: 'R. Kumar (Kovai Agri)', lat: 10.7815, lng: 79.1410, alt: 38, speed: 5.5, hdg: 240, color: '#FFB84D', history: [], active: true, alert: null },
+  { id: 'DRN-12', callsign: 'DRN-12', op: 'FPO Thanjavur-04', lat: 10.7930, lng: 79.1380, alt: 52, speed: 7.1, hdg: 195, color: '#B794F4', history: [], active: true, alert: null },
+  { id: 'DRN-22', callsign: 'DRN-22', op: 'S. Murugan', lat: 10.7855, lng: 79.1300, alt: 42, speed: 4.8, hdg: 78, color: '#F472B6', history: [], active: true, alert: null },
+  { id: 'DRN-31', callsign: 'DRN-31', op: 'AgriSpray Services', lat: 10.7900, lng: 79.1450, alt: 48, speed: 6.8, hdg: 290, color: '#4FD1C5', history: [], active: true, alert: null },
+];
+
+let droneMarkers = {}, droneTrails = {}, dronePredictions = {};
+let noflyCircles = [], radiusCircle = null;
+let alerts = [], alertIdSeq = 1;
+
+// ============================================================
+// LANDING → APP
+// ============================================================
+function showLocalHost() { document.getElementById('localModal').classList.add('active'); }
+function enterApp(mode) {
+  document.getElementById('localModal').classList.remove('active');
+  document.getElementById('landing').classList.add('hidden');
+  document.getElementById('app').classList.add('active');
+  if (mode === 'LOCAL_HOST') {
+    document.getElementById('roomMode').textContent = 'LOCAL HOTSPOT · Host';
+    document.getElementById('roomMode').style.color = 'var(--amber)';
+    document.getElementById('roomId').textContent = '192.168.43.1:8080';
+  } else if (mode === 'LOCAL_JOIN') {
+    document.getElementById('roomMode').textContent = 'LOCAL HOTSPOT · Client';
+    document.getElementById('roomMode').style.color = 'var(--amber)';
+    document.getElementById('roomId').textContent = '192.168.43.1:8080';
+  }
+  initMap();
+  startTicker();
+}
+function exitApp() {
+  stopTicker();
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('landing').classList.remove('hidden');
+}
+
+// ============================================================
+// MAP
+// ============================================================
+function initMap() {
+  map = L.map('map', { zoomControl: true, attributionControl: true }).setView([CENTER.lat, CENTER.lng], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OSM', maxZoom: 19
+  }).addTo(map);
+
+  // 5km radius ring around user
+  radiusCircle = L.circle([CENTER.lat, CENTER.lng], {
+    radius: 2500, // 2.5km visible (smaller for demo clarity)
+    color: '#00D4C8', weight: 1, opacity: 0.4,
+    fillColor: '#00D4C8', fillOpacity: 0.03,
+    dashArray: '4 6'
+  }).addTo(map);
+
+  // No-fly zones
+  NOFLY_ZONES.forEach(z => {
+    const c = L.circle([z.lat, z.lng], {
+      radius: z.radius,
+      color: z.color,
+      weight: 2,
+      opacity: 0.75,
+      fillColor: z.color,
+      fillOpacity: 0.15,
+      dashArray: '5 5'
+    }).addTo(map);
+    c.bindPopup(`<div style="font-family:'Archivo',sans-serif;font-weight:700;color:${z.color};font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">No-Fly Zone · ${z.type}</div><div style="font-weight:600;color:#E8EEF5;">${z.name}</div><div style="font-size:11px;color:#9EB0C4;margin-top:4px;">Radius: ${z.radius}m · ID: ${z.id}</div>`);
+    noflyCircles.push({ zone: z, circle: c });
+  });
+
+  // Initial drone markers
+  drones.forEach(d => createDroneMarker(d));
+  renderDroneList();
+  renderNoflyList();
+  updateStats();
+}
+
+function createDroneMarker(d) {
+  const el = document.createElement('div');
+  el.className = 'drone-marker' + (d.me ? ' me' : '');
+  el.innerHTML = `
+    ${d.me ? '<div class="ping" style="color:' + d.color + ';"></div>' : ''}
+    <div class="body" style="background:${d.color};color:${d.color};"></div>
+    <div class="label">${d.callsign}</div>
+  `;
+  const icon = L.divIcon({ html: el.outerHTML, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+  const marker = L.marker([d.lat, d.lng], { icon, zIndexOffset: d.me ? 1000 : 100 }).addTo(map);
+  marker.bindPopup(popupForDrone(d));
+  droneMarkers[d.id] = marker;
+
+  // Trail
+  droneTrails[d.id] = L.polyline([], { color: d.color, weight: 2, opacity: 0.6 }).addTo(map);
+  // Prediction
+  dronePredictions[d.id] = L.polyline([], { color: d.color, weight: 2, opacity: 0.55, dashArray: '4 6' }).addTo(map);
+}
+
+function popupForDrone(d) {
+  return `
+    <div style="font-family:'Archivo',sans-serif;font-weight:700;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:${d.color};margin-bottom:6px;">${d.me ? 'Your Drone' : 'Operator'}</div>
+    <div style="font-weight:700;font-size:14px;margin-bottom:2px;">${d.callsign}</div>
+    <div style="font-size:12px;color:#9EB0C4;margin-bottom:8px;">${d.op}</div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;line-height:1.7;color:#E8EEF5;">
+      ALT: <span style="color:var(--cyan);">${Math.round(d.alt)}m</span><br>
+      SPD: <span style="color:var(--cyan);">${d.speed.toFixed(1)} m/s</span><br>
+      HDG: <span style="color:var(--cyan);">${Math.round(d.hdg)}°</span>
+    </div>
+  `;
+}
+
+function updateDroneMarker(d) {
+  const el = document.createElement('div');
+  el.className = 'drone-marker' + (d.me ? ' me' : '');
+  const ringColor = d.alert ? '#FF4560' : d.color;
+  el.innerHTML = `
+    ${d.me || d.alert ? '<div class="ping" style="color:' + ringColor + ';"></div>' : ''}
+    <div class="body" style="background:${d.color};color:${ringColor};${d.alert ? 'border-color:#FF4560;box-shadow:0 0 0 3px rgba(0,0,0,0.3),0 0 20px #FF4560;' : ''}"></div>
+    <div class="label" style="${d.alert ? 'border-color:#FF4560;color:#FF4560;' : ''}">${d.callsign}</div>
+  `;
+  const icon = L.divIcon({ html: el.outerHTML, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
+  droneMarkers[d.id].setIcon(icon);
+  droneMarkers[d.id].setLatLng([d.lat, d.lng]);
+  droneMarkers[d.id].setPopupContent(popupForDrone(d));
+}
+
+// ============================================================
+// SIMULATION PHYSICS
+// ============================================================
+const EARTH_R = 6371000;
+function movePoint(lat, lng, hdg, distM) {
+  const br = hdg * Math.PI / 180;
+  const dByR = distM / EARTH_R;
+  const latR = lat * Math.PI / 180;
+  const lngR = lng * Math.PI / 180;
+  const lat2 = Math.asin(Math.sin(latR) * Math.cos(dByR) + Math.cos(latR) * Math.sin(dByR) * Math.cos(br));
+  const lng2 = lngR + Math.atan2(Math.sin(br) * Math.sin(dByR) * Math.cos(latR), Math.cos(dByR) - Math.sin(latR) * Math.sin(lat2));
+  return { lat: lat2 * 180 / Math.PI, lng: lng2 * 180 / Math.PI };
+}
+function distM(a, b) {
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const la = a.lat * Math.PI / 180, lb = b.lat * Math.PI / 180;
+  const h = Math.sin(dLat/2)**2 + Math.sin(dLng/2)**2 * Math.cos(la) * Math.cos(lb);
+  return EARTH_R * 2 * Math.asin(Math.sqrt(h));
+}
+
+function tick() {
+  if (!flightRunning) return;
+  const dt = 0.2; // 200ms
+
+  drones.forEach(d => {
+    if (!d.active) return;
+    // Occasionally turn (simulating spray pattern)
+    if (Math.random() < 0.05) d.hdg = (d.hdg + (Math.random() - 0.5) * 40 + 360) % 360;
+    // Slight altitude drift
+    d.alt += (Math.random() - 0.5) * 0.5;
+    d.alt = Math.max(20, Math.min(80, d.alt));
+    // Slight speed drift
+    d.speed += (Math.random() - 0.5) * 0.1;
+    d.speed = Math.max(3, Math.min(10, d.speed));
+
+    const next = movePoint(d.lat, d.lng, d.hdg, d.speed * dt);
+    d.lat = next.lat; d.lng = next.lng;
+
+    // History (cap 50)
+    d.history.push([d.lat, d.lng]);
+    if (d.history.length > 50) d.history.shift();
+
+    // Keep within bounds — if drifting far, gentle return
+    const dFromCenter = distM({lat: d.lat, lng: d.lng}, CENTER);
+    if (dFromCenter > 2500) {
+      // Point heading back toward center
+      const dy = CENTER.lat - d.lat;
+      const dx = CENTER.lng - d.lng;
+      const bearing = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+      d.hdg = bearing;
+    }
+  });
+
+  // Clear previous alerts that are state-dependent; we'll recompute
+  const priorAlertKeys = new Set(alerts.map(a => a.key));
+  const activeAlertKeys = new Set();
+
+  // Reset drone alert flags
+  drones.forEach(d => d.alert = null);
+
+  // No-fly zone checks
+  drones.forEach(d => {
+    if (!d.active) return;
+    NOFLY_ZONES.forEach(z => {
+      const dist = distM({lat: d.lat, lng: d.lng}, {lat: z.lat, lng: z.lng});
+      const key = 'NFZ-' + d.id + '-' + z.id;
+      if (dist < z.radius) {
+        d.alert = 'NOFLY';
+        activeAlertKeys.add(key);
+        if (!priorAlertKeys.has(key)) {
+          pushAlert({ key, level: 'red', title: 'NO-FLY VIOLATION', body: `<strong>${d.callsign}</strong> entered <strong>${z.name}</strong> (${z.type}). Immediate RTH advised.`, icon: '⛔' });
+        }
+      } else if (dist < z.radius + 200) {
+        d.alert = d.alert || 'APPROACH';
+        activeAlertKeys.add(key + '-APP');
+        if (!priorAlertKeys.has(key + '-APP')) {
+          pushAlert({ key: key + '-APP', level: 'amber', title: 'APPROACHING NO-FLY ZONE', body: `<strong>${d.callsign}</strong> approaching <strong>${z.name}</strong> · <span class="mono">${Math.round(dist - z.radius)}m away</span>`, icon: '⚠️' });
+        }
+      }
+    });
+  });
+
+  // Collision prediction — check pairs
+  for (let i = 0; i < drones.length; i++) {
+    for (let j = i + 1; j < drones.length; j++) {
+      const a = drones[i], b = drones[j];
+      if (!a.active || !b.active) continue;
+      // Project forward every 2s up to 10s
+      let minDist = Infinity, minT = 0;
+      for (let t = 0; t <= 10; t += 2) {
+        const pa = movePoint(a.lat, a.lng, a.hdg, a.speed * t);
+        const pb = movePoint(b.lat, b.lng, b.hdg, b.speed * t);
+        const altDiff = Math.abs(a.alt - b.alt);
+        // Horizontal + altitude must be within threshold
+        const d2 = distM(pa, pb);
+        // Treat as 3D risk
+        const d3 = Math.sqrt(d2*d2 + altDiff*altDiff);
+        if (d3 < minDist) { minDist = d3; minT = t; }
+      }
+      const key = 'COL-' + a.id + '-' + b.id;
+      if (minDist < 60) {
+        a.alert = a.alert || 'COLLISION';
+        b.alert = b.alert || 'COLLISION';
+        activeAlertKeys.add(key);
+        if (!priorAlertKeys.has(key)) {
+          pushAlert({ key, level: 'red', title: 'COLLISION RISK', body: `<strong>${a.callsign}</strong> ↔ <strong>${b.callsign}</strong> on intersecting path · <span class="mono">T-${minT}s · ${Math.round(minDist)}m</span>`, icon: '✈️' });
+        }
+      }
+    }
+  }
+
+  // Remove stale alerts
+  alerts = alerts.filter(a => activeAlertKeys.has(a.key) || a.sticky);
+
+  // Render
+  drones.forEach(d => {
+    if (!d.active) return;
+    updateDroneMarker(d);
+    droneTrails[d.id].setLatLngs(d.history);
+    // Prediction line
+    const predPoints = [[d.lat, d.lng]];
+    for (let t = 2; t <= 10; t += 2) {
+      const p = movePoint(d.lat, d.lng, d.hdg, d.speed * t);
+      predPoints.push([p.lat, p.lng]);
+    }
+    dronePredictions[d.id].setLatLngs(predPoints);
+  });
+
+  // Update my telemetry
+  const me = drones.find(d => d.me);
+  if (me) {
+    document.getElementById('myAlt').textContent = Math.round(me.alt);
+    document.getElementById('mySpeed').textContent = me.speed.toFixed(1);
+    document.getElementById('myHdg').textContent = Math.round(me.hdg);
+  }
+  renderDroneList();
+  renderAlerts();
+  updateStats();
+}
+
+function startTicker() { if (tickInterval) clearInterval(tickInterval); tickInterval = setInterval(tick, 200); }
+function stopTicker() { clearInterval(tickInterval); tickInterval = null; }
+function toggleFlight() {
+  flightRunning = !flightRunning;
+  const btn = document.getElementById('flightBtn');
+  if (flightRunning) {
+    btn.classList.add('primary');
+    btn.classList.remove('danger');
+    btn.innerHTML = '▶ <span data-i18n="startFlight">' + (I18N[currentLang].startFlight) + '</span>';
+  } else {
+    btn.classList.remove('primary');
+    btn.classList.add('danger');
+    btn.innerHTML = '⏸ <span>' + (I18N[currentLang].stopFlight || 'Stop Flight') + '</span>';
+  }
+}
+
+// ============================================================
+// ALERTS
+// ============================================================
+function pushAlert(a) {
+  alerts.unshift({ ...a, id: alertIdSeq++, ts: Date.now() });
+  if (alerts.length > 6) alerts = alerts.slice(0, 6);
+}
+function renderAlerts() {
+  const stack = document.getElementById('alertStack');
+  stack.innerHTML = alerts.map(a => `
+    <div class="alert ${a.level}">
+      <div class="ico">${a.icon}</div>
+      <div style="flex:1;">
+        <div class="title">${a.title}</div>
+        <div class="body">${a.body}</div>
+      </div>
+      <button class="close" onclick="dismissAlert(${a.id})">×</button>
+    </div>
+  `).join('');
+}
+function dismissAlert(id) {
+  alerts = alerts.filter(a => a.id !== id);
+  renderAlerts();
+}
+
+// ============================================================
+// UI RENDERS
+// ============================================================
+function renderDroneList() {
+  const me = drones.find(d => d.me);
+  const list = drones.filter(d => !d.me && d.active).map(d => {
+    const dist = me ? Math.round(distM({lat: me.lat, lng: me.lng}, {lat: d.lat, lng: d.lng})) : 0;
+    return `
+      <div class="drone-item ${d.alert ? 'active' : ''}" onclick="focusDrone('${d.id}')">
+        <div class="drone-dot" style="background:${d.color};"></div>
+        <div>
+          <div class="name">${d.callsign} ${d.alert ? '<span style="color:var(--red);font-size:10px;">● ALERT</span>' : ''}</div>
+          <div class="meta">${d.op.length > 24 ? d.op.slice(0, 23) + '…' : d.op}</div>
+        </div>
+        <div class="dist">${dist}m</div>
+      </div>
+    `;
+  }).join('');
+  document.getElementById('droneList').innerHTML = list || '<div style="color:var(--text-mute);font-size:12px;padding:8px;text-align:center;">No nearby drones</div>';
+  document.getElementById('nearbyCount').textContent = drones.filter(d => !d.me && d.active).length;
+  document.getElementById('operatorCount').textContent = drones.filter(d => d.active).length + ' online';
+}
+
+function renderNoflyList() {
+  document.getElementById('noflyList').innerHTML = NOFLY_ZONES.map(z => `
+    <div class="nofly-item">
+      <div>
+        <div class="name">${currentLang === 'ta' ? z.name_ta : z.name}</div>
+        <div class="type">${z.type} · ${z.id}</div>
+      </div>
+      <div class="radius">${z.radius}m</div>
+    </div>
+  `).join('');
+}
+
+function updateStats() {
+  document.getElementById('statActive').textContent = drones.filter(d => d.active).length;
+  document.getElementById('statAlerts').textContent = alerts.length;
+  document.getElementById('statNofly').textContent = NOFLY_ZONES.length;
+  const activeDrones = drones.filter(d => d.active);
+  const avgAlt = activeDrones.length ? Math.round(activeDrones.reduce((s, d) => s + d.alt, 0) / activeDrones.length) : 0;
+  document.getElementById('statAvgAlt').textContent = avgAlt;
+}
+
+function focusDrone(id) {
+  const d = drones.find(x => x.id === id);
+  if (d) map.setView([d.lat, d.lng], 16, { animate: true });
+}
+
+function recenterMap() {
+  const me = drones.find(d => d.me);
+  if (me) map.setView([me.lat, me.lng], 15, { animate: true });
+}
+
+// ============================================================
+// SIMULATION HELPERS
+// ============================================================
+function addVirtualDrone() {
+  const names = ['Periyar FPO', 'GreenSpray Co.', 'V. Elango', 'DroneFarms TN', 'K. Saravanan', 'Agriton Services'];
+  const colors = ['#F472B6', '#B794F4', '#FCD34D', '#4FD1C5', '#FB923C', '#A78BFA'];
+  const id = 'DRN-' + Math.floor(Math.random() * 90 + 10);
+  const angle = Math.random() * 360;
+  const dist = 800 + Math.random() * 1500;
+  const pos = movePoint(CENTER.lat, CENTER.lng, angle, dist);
+  const newD = {
+    id, callsign: id, op: names[Math.floor(Math.random() * names.length)],
+    lat: pos.lat, lng: pos.lng,
+    alt: 30 + Math.random() * 30,
+    speed: 4 + Math.random() * 4,
+    hdg: Math.random() * 360,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    history: [], active: true, alert: null
+  };
+  drones.push(newD);
+  createDroneMarker(newD);
+  renderDroneList();
+  pushAlert({ key: 'JOIN-' + id, level: 'amber', title: 'NEW OPERATOR JOINED', body: `<strong>${newD.callsign}</strong> (${newD.op}) entered the airspace room`, icon: '📡', sticky: false });
+  setTimeout(() => { alerts = alerts.filter(a => a.key !== 'JOIN-' + id); renderAlerts(); }, 4000);
+}
+
+function forceCollisionScenario() {
+  const me = drones.find(d => d.me);
+  // Pick a random other drone and set its heading toward mine
+  const others = drones.filter(d => !d.me && d.active);
+  if (others.length === 0) return;
+  const target = others[Math.floor(Math.random() * others.length)];
+  const dy = me.lat - target.lat, dx = me.lng - target.lng;
+  target.hdg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+  target.speed = 8;
+  target.alt = me.alt + (Math.random() - 0.5) * 8;
+  // Also steer me toward target a bit
+  me.hdg = (target.hdg + 180) % 360;
+}
+
+function forceNoFlyScenario() {
+  // Redirect a drone toward the nearest no-fly zone
+  const others = drones.filter(d => !d.me && d.active);
+  if (others.length === 0) return;
+  const d = others[Math.floor(Math.random() * others.length)];
+  const zone = NOFLY_ZONES[Math.floor(Math.random() * NOFLY_ZONES.length)];
+  const dy = zone.lat - d.lat, dx = zone.lng - d.lng;
+  d.hdg = (Math.atan2(dx, dy) * 180 / Math.PI + 360) % 360;
+  d.speed = 7;
+}
+</script>
+</body>
+</html>

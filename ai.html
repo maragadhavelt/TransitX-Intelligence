@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="MetroMind Chennai, a futuristic smart metro and bus tracking dashboard." />
+  <meta name="theme-color" content="#0b1220" />
+  <title>MetroMind Chennai | Neural Transit Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── BASE VARIABLES & RESET ─────────────────────────── */
+    :root {
+      --bg: #04070f;
+      --bg-soft: #06101b;
+      --panel: rgba(9,19,34,0.78);
+      --panel-strong: rgba(13,24,42,0.92);
+      --panel-bright: rgba(19,35,61,0.95);
+      --line: rgba(125,216,255,0.14);
+      --line-strong: rgba(125,216,255,0.3);
+      --text: #f2fbff;
+      --muted: #98afc7;
+      --dim: #58718d;
+      --cyan: #00d4ff;
+      --orange: #ff6b35;
+      --green: #7fff6b;
+      --red: #ff4466;
+      --yellow: #ffbe3d;
+      --blue: #4f7cff;
+      --purple: #ab7cff;
+      --radius-sm: 12px;
+      --radius: 22px;
+      --radius-lg: 32px;
+      --shadow: 0 20px 60px rgba(0,0,0,0.45);
+      --glow-cyan: 0 0 0 1px rgba(0,212,255,0.2), 0 0 35px rgba(0,212,255,0.16);
+      --glow-orange: 0 0 0 1px rgba(255,107,53,0.18), 0 0 35px rgba(255,107,53,0.12);
+      --sidebar: 280px;
+      --content: min(1500px, calc(100vw - 360px));
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background:
+        radial-gradient(circle at 15% 15%, rgba(0,212,255,0.12), transparent 28%),
+        radial-gradient(circle at 85% 20%, rgba(255,107,53,0.12), transparent 24%),
+        radial-gradient(circle at 50% 80%, rgba(127,255,107,0.08), transparent 28%),
+        linear-gradient(180deg, #03050b 0%, #04070f 28%, #07101d 100%);
+      color: var(--text);
+      font-family: "DM Sans", sans-serif;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.05) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(255,255,255,0.15));
+      animation: gridShift 28s linear infinite;
+    }
+    body::after {
+      content: "";
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      opacity: 0.2;
+      background-image: radial-gradient(rgba(255,255,255,0.4) 0.7px, transparent 0.7px);
+      background-size: 16px 16px;
+      mix-blend-mode: soft-light;
+    }
+    @keyframes gridShift {
+      from { transform: translate3d(0,0,0); }
+      to   { transform: translate3d(48px,48px,0); }
+    }
+    a { color: inherit; text-decoration: none; }
+    button, select, input { font: inherit; cursor: pointer; }
+
+    /* ── TICKER ─────────────────────────────────────────── */
+    .ticker {
+      position: fixed; top: 0; left: var(--sidebar); right: 0;
+      height: 40px; z-index: 40; display: flex; align-items: center;
+      overflow: hidden;
+      background: rgba(2,5,10,0.84);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      backdrop-filter: blur(16px);
+    }
+    .ticker-label {
+      height: 100%; display: inline-flex; align-items: center;
+      padding: 0 14px;
+      font-family: "Space Mono", monospace; font-size: 0.72rem;
+      letter-spacing: 0.2em; color: #02060f;
+      background: linear-gradient(135deg, var(--cyan), #9cecff);
+      font-weight: 700; text-transform: uppercase;
+    }
+    .ticker-track {
+      display: flex; gap: 40px; white-space: nowrap;
+      padding-left: 22px; color: var(--muted); font-size: 0.86rem;
+      animation: tickerMove 36s linear infinite;
+    }
+    @keyframes tickerMove {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    .sidebar {
+      position: fixed; inset: 0 auto 0 0; width: var(--sidebar);
+      z-index: 50; padding: 24px 18px;
+      background: linear-gradient(180deg, rgba(7,13,24,0.98), rgba(6,11,21,0.9)), rgba(6,9,17,0.95);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      backdrop-filter: blur(24px);
+      display: flex; flex-direction: column; gap: 18px;
+    }
+    .logo {
+      display: grid; gap: 8px; padding: 12px 14px 18px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: var(--glow-cyan);
+    }
+    .logo-top { display: flex; align-items: center; gap: 12px; }
+    .hex {
+      width: 44px; height: 44px; border-radius: 14px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, rgba(0,212,255,0.24), rgba(255,107,53,0.18)), rgba(255,255,255,0.03);
+      color: var(--cyan); font-size: 1.35rem;
+      box-shadow: 0 0 24px rgba(0,212,255,0.18);
+    }
+    .logo-title { font-family: "Syne", sans-serif; font-weight: 800; font-size: 1.35rem; line-height: 1; letter-spacing: 0.04em; }
+    .logo-title strong { color: var(--cyan); }
+    .logo-sub { color: var(--dim); font-size: 0.78rem; line-height: 1.5; }
+    .system-pill {
+      display: inline-flex; align-items: center; gap: 8px; justify-self: start;
+      padding: 7px 10px; border-radius: 999px;
+      border: 1px solid rgba(127,255,107,0.18);
+      background: rgba(127,255,107,0.08); color: var(--green);
+      font-family: "Space Mono", monospace; font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: 0.12em;
+    }
+    .pulse {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+      animation: pulse 1.7s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(127,255,107,0.45); }
+      70%  { box-shadow: 0 0 0 12px rgba(127,255,107,0); }
+      100% { box-shadow: 0 0 0 0 rgba(127,255,107,0); }
+    }
+    .nav { display: grid; gap: 8px; overflow: auto; padding-right: 4px; }
+    .nav a {
+      display: grid; grid-template-columns: 28px 1fr auto;
+      align-items: center; gap: 12px; padding: 13px 14px;
+      border-radius: 16px; color: var(--muted);
+      background: rgba(255,255,255,0.02);
+      border: 1px solid transparent; transition: 0.25s ease;
+    }
+    .nav a:hover, .nav a.active {
+      transform: translateX(4px); color: var(--text);
+      border-color: rgba(0,212,255,0.18);
+      background: linear-gradient(90deg, rgba(0,212,255,0.1), rgba(255,255,255,0.02)), rgba(255,255,255,0.03);
+      box-shadow: inset 3px 0 0 var(--cyan);
+    }
+    .nav-badge {
+      min-width: 32px; padding: 4px 8px; border-radius: 999px;
+      background: rgba(255,255,255,0.04); color: var(--cyan);
+      font-family: "Space Mono", monospace; font-size: 0.72rem; text-align: center;
+    }
+    .nav-badge.alert { color: var(--orange); background: rgba(255,107,53,0.12); }
+    .sidebar-footer { margin-top: auto; display: grid; gap: 10px; }
+    .sidebar-btn, .mini-btn, .chip-btn, .hero-btn, .action-btn {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--text); border-radius: 14px; transition: 0.25s ease;
+    }
+    .sidebar-btn {
+      padding: 12px 14px; text-align: left;
+      display: flex; justify-content: space-between; align-items: center;
+      color: var(--muted);
+    }
+    .sidebar-btn:hover, .mini-btn:hover, .chip-btn:hover, .hero-btn:hover, .action-btn:hover {
+      border-color: rgba(0,212,255,0.25); color: var(--cyan);
+      box-shadow: var(--glow-cyan); transform: translateY(-1px);
+    }
+    .clock { font-family: "Space Mono", monospace; color: var(--dim); font-size: 0.82rem; text-align: center; padding-top: 8px; }
+
+    /* ── MAIN ────────────────────────────────────────────── */
+    main { position: relative; z-index: 1; margin-left: var(--sidebar); padding-top: 40px; }
+    .section { width: var(--content); margin: 0 auto; min-height: 100vh; padding: 54px 0 42px; position: relative; }
+    .section-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; margin-bottom: 28px; flex-wrap: wrap; }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-radius: 999px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07); color: var(--muted);
+      font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.16em;
+      font-family: "Space Mono", monospace;
+    }
+    .eyebrow-dot {
+      width: 7px; height: 7px; border-radius: 50%; background: var(--cyan);
+      box-shadow: 0 0 14px rgba(0,212,255,0.8);
+    }
+    h1, h2, h3, h4 { margin: 0; font-family: "Syne", sans-serif; letter-spacing: -0.04em; }
+    h2 { font-size: clamp(2rem,4vw,3.4rem); line-height: 0.95; }
+    .section-lead { max-width: 720px; color: var(--muted); line-height: 1.75; font-size: 1rem; }
+
+    /* ── HERO ────────────────────────────────────────────── */
+    .hero { display: grid; align-items: center; min-height: calc(100vh - 40px); padding-top: 86px; overflow: hidden; }
+    #particleCanvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.8; pointer-events: none; }
+    .hero-grid {
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at center, rgba(0,212,255,0.12), transparent 34%), linear-gradient(180deg, transparent, rgba(0,0,0,0.2));
+      mask-image: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.2));
+      pointer-events: none; z-index: 0;
+    }
+    .hero-wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 28px; align-items: center; }
+    .hero-copy { display: grid; gap: 20px; }
+    .mega-title { font-size: clamp(4rem,11vw,8.2rem); line-height: 0.84; text-transform: uppercase; position: relative; }
+    .mega-title span { display: block; }
+    .mega-title .neon {
+      color: var(--cyan); position: relative;
+      text-shadow: 0 0 18px rgba(0,212,255,0.22), 0 0 48px rgba(0,212,255,0.22);
+    }
+    .mega-title .neon::before, .mega-title .neon::after {
+      content: attr(data-text); position: absolute; left: 0; top: 0; opacity: 0; pointer-events: none;
+    }
+    .mega-title .neon::before { color: var(--orange); transform: translate(2px,0); animation: glitchA 5s infinite; }
+    .mega-title .neon::after  { color: #fff; transform: translate(-2px,0); animation: glitchB 5s infinite; }
+    @keyframes glitchA { 0%,90%,100%{opacity:0} 92%,94%{opacity:0.7} 93%{transform:translate(6px,-2px)} 95%{transform:translate(-3px,2px)} }
+    @keyframes glitchB { 0%,90%,100%{opacity:0} 91%,96%{opacity:0.45} 93%{transform:translate(-6px,2px)} 95%{transform:translate(4px,-1px)} }
+    .hero-subtitle { font-size: 1.18rem; color: var(--muted); line-height: 1.8; max-width: 760px; }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-btn { padding: 15px 22px; font-weight: 700; font-family: "Syne", sans-serif; letter-spacing: 0.03em; }
+    .hero-btn.primary { background: linear-gradient(135deg,var(--cyan),#81ecff); color: #021018; border-color: transparent; box-shadow: 0 16px 40px rgba(0,212,255,0.22); }
+    .hero-btn.secondary { background: linear-gradient(135deg,rgba(255,107,53,0.12),rgba(255,255,255,0.03)); color: var(--orange); border-color: rgba(255,107,53,0.25); box-shadow: var(--glow-orange); }
+    .hero-stats { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin-top: 8px; }
+    .metric-card, .hero-metric, .panel, .dashboard-card, .route-card, .alert-summary, .planner-card, .analytics-card, .admin-card {
+      background: linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015)), var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(18px); box-shadow: var(--shadow);
+    }
+    .hero-metric {
+      border-radius: 20px; padding: 18px; min-height: 122px;
+      display: grid; align-content: space-between; position: relative; overflow: hidden;
+    }
+    .hero-metric::after {
+      content: ""; position: absolute; inset: auto -12px -12px auto;
+      width: 92px; height: 92px; border-radius: 50%;
+      background: radial-gradient(circle,rgba(0,212,255,0.16),transparent 70%);
+    }
+    .hero-metric .value { font-family: "Syne", sans-serif; font-size: 2rem; font-weight: 800; color: var(--text); }
+    .hero-metric .label { color: var(--dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.16em; font-family: "Space Mono", monospace; }
+    .hero-metric .delta { color: var(--green); font-size: 0.78rem; font-family: "Space Mono", monospace; }
+    .hero-right { display: grid; gap: 16px; }
+    .hero-panel {
+      border-radius: 28px; padding: 20px; min-height: 440px; position: relative; overflow: hidden;
+      background:
+        radial-gradient(circle at 10% 20%,rgba(0,212,255,0.12),transparent 22%),
+        radial-gradient(circle at 90% 20%,rgba(255,107,53,0.14),transparent 18%),
+        linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015)),
+        rgba(6,14,27,0.9);
+      border: 1px solid rgba(255,255,255,0.08); box-shadow: var(--shadow);
+    }
+    .panel-frame { position: absolute; inset: 14px; border-radius: 22px; border: 1px solid rgba(255,255,255,0.06); pointer-events: none; }
+    .hud-top { display: flex; justify-content: space-between; align-items: center; font-family: "Space Mono", monospace; color: var(--muted); font-size: 0.78rem; margin-bottom: 20px; }
+    .hud-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+    .hud-tile { border-radius: 18px; padding: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); min-height: 126px; }
+    .hud-tile h3 { font-size: 1rem; margin-bottom: 8px; }
+    .hud-tile p { color: var(--muted); line-height: 1.6; font-size: 0.9rem; }
+    .mini-spectrum { display: grid; grid-template-columns: repeat(14,1fr); gap: 6px; align-items: end; height: 74px; margin-top: 14px; }
+    .mini-spectrum span { display: block; border-radius: 999px 999px 6px 6px; background: linear-gradient(180deg,var(--cyan),rgba(0,212,255,0.2)); animation: rise 3s infinite ease-in-out; transform-origin: bottom; }
+    .mini-spectrum span:nth-child(odd) { background: linear-gradient(180deg,var(--orange),rgba(255,107,53,0.16)); }
+    .mini-spectrum span:nth-child(3n)  { background: linear-gradient(180deg,var(--green),rgba(127,255,107,0.16)); }
+    @keyframes rise { 0%,100%{transform:scaleY(0.7);opacity:0.8} 50%{transform:scaleY(1);opacity:1} }
+    .signal-cluster { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; margin-top: 14px; }
+    .signal-cluster span { aspect-ratio:1; border-radius:14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); position:relative; overflow:hidden; }
+    .signal-cluster span::after { content:""; position:absolute; inset:10px; border-radius:50%; background:radial-gradient(circle,rgba(0,212,255,0.4),rgba(0,212,255,0)); animation:pulseRing 2.6s infinite; }
+    @keyframes pulseRing { 0%{transform:scale(0.4);opacity:0.8} 100%{transform:scale(1.5);opacity:0} }
+    .skyline { position:absolute; left:0; right:0; bottom:0; height:170px; opacity:0.86; }
+    .skyline svg { width:100%; height:100%; display:block; }
+    .city-train { animation: skylineTrain 16s linear infinite; }
+    @keyframes skylineTrain { from{transform:translateX(-180px)} to{transform:translateX(1520px)} }
+    .panel-tag-row, .chip-row, .tab-row, .legend-grid, .meta-row { display:flex; gap:10px; flex-wrap:wrap; }
+    .chip-btn, .mini-btn { padding:10px 14px; color:var(--muted); }
+    .chip-btn.active, .mini-btn.active { color:var(--cyan); border-color:rgba(0,212,255,0.24); background:rgba(0,212,255,0.08); }
+
+    /* ── MAP ─────────────────────────────────────────────── */
+    .dashboard-layout { display:grid; grid-template-columns:1.45fr 0.55fr; gap:20px; align-items:start; }
+    .map-shell {
+      position:relative; border-radius:30px; overflow:hidden; min-height:760px;
+      background:
+        radial-gradient(circle at 20% 30%,rgba(0,212,255,0.09),transparent 22%),
+        radial-gradient(circle at 80% 75%,rgba(255,107,53,0.12),transparent 24%),
+        linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015)),
+        rgba(4,10,20,0.94);
+      border:1px solid rgba(255,255,255,0.07); box-shadow:var(--shadow);
+    }
+    .map-topbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:18px 18px 0; }
+    .map-stage { position:relative; padding:16px; }
+    .city-map { width:100%; height:680px; border-radius:24px; background:radial-gradient(circle at 50% 50%,rgba(18,37,61,0.7),rgba(8,15,28,0.96)); border:1px solid rgba(255,255,255,0.05); }
+    .route-line { stroke-dasharray:12 10; animation:routeFlow 18s linear infinite; }
+    @keyframes routeFlow { from{stroke-dashoffset:0} to{stroke-dashoffset:-220} }
+    .bus-vehicle { cursor:pointer; filter:drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+    .bus-vehicle .bus-core { animation:busGlow 2.8s infinite; }
+    @keyframes busGlow { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.16);opacity:0.82} }
+    .map-popup {
+      position:absolute; right:24px; top:86px; width:290px; display:none;
+      border-radius:22px; padding:18px;
+      background:rgba(5,12,24,0.95); border:1px solid rgba(0,212,255,0.22);
+      box-shadow:var(--glow-cyan),var(--shadow); z-index:4;
+    }
+    .map-popup.open { display:block; animation:cardIn 0.22s ease; }
+    @keyframes cardIn { from{opacity:0;transform:translateY(10px) scale(0.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+    .popup-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .popup-route { font-family:"Space Mono",monospace; font-size:1.1rem; color:var(--cyan); font-weight:700; }
+    .popup-close { width:34px; height:34px; border-radius:12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); color:var(--muted); }
+    .popup-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .popup-grid article { padding:10px; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .popup-grid small, .info-block small, .tiny-label, .label { display:block; color:var(--dim); text-transform:uppercase; letter-spacing:0.12em; font-size:0.64rem; font-family:"Space Mono",monospace; margin-bottom:4px; }
+    .popup-grid strong, .info-block strong { color:var(--text); font-family:"Space Mono",monospace; font-size:0.86rem; }
+    .legend-panel, .mini-map, .gps-box { position:absolute; background:rgba(5,11,22,0.88); border:1px solid rgba(255,255,255,0.08); border-radius:20px; backdrop-filter:blur(16px); box-shadow:var(--shadow); }
+    .legend-panel { left:24px; bottom:22px; padding:16px; width:220px; z-index:3; }
+    .legend-grid { display:grid; gap:8px; }
+    .legend-item { display:flex; align-items:center; gap:10px; color:var(--muted); font-size:0.85rem; }
+    .legend-swatch { width:14px; height:14px; border-radius:50%; box-shadow:0 0 12px currentColor; }
+    .legend-line { width:22px; height:4px; border-radius:999px; }
+    .mini-map { right:22px; bottom:22px; width:180px; height:126px; overflow:hidden; z-index:3; }
+    .mini-map svg { width:100%; height:100%; }
+    .gps-box { left:22px; top:88px; width:186px; padding:14px; z-index:3; }
+    .gps-grid { display:grid; gap:6px; color:var(--muted); font-family:"Space Mono",monospace; font-size:0.74rem; }
+    .right-rail { display:grid; gap:16px; position:sticky; top:64px; }
+    .info-block, .data-list-card, .control-stack { padding:18px; border-radius:24px; }
+    .info-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:12px; }
+    .info-grid article { padding:12px; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .info-list { display:grid; gap:10px; margin-top:14px; }
+    .info-list div { display:flex; justify-content:space-between; gap:10px; color:var(--muted); padding-bottom:8px; border-bottom:1px dashed rgba(255,255,255,0.07); font-size:0.86rem; }
+
+    /* ── ETA ─────────────────────────────────────────────── */
+    .eta-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+    .eta-card { border-radius:24px; padding:20px; display:grid; gap:16px; position:relative; overflow:hidden; }
+    .eta-card::before { content:""; position:absolute; inset:0 0 auto 0; height:2px; background:linear-gradient(90deg,transparent,var(--cyan),transparent); opacity:0.9; }
+    .route-chip { display:inline-grid; gap:2px; padding:10px 12px; border-radius:16px; border:1px solid rgba(255,255,255,0.09); background:rgba(255,255,255,0.03); justify-self:start; }
+    .route-chip strong { font-family:"Space Mono",monospace; font-size:1rem; }
+    .route-chip span { color:var(--muted); font-size:0.78rem; }
+    .status-tag { padding:7px 10px; border-radius:999px; font-family:"Space Mono",monospace; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.11em; justify-self:start; }
+    .status-tag.green  { color:var(--green);  background:rgba(127,255,107,0.12); border:1px solid rgba(127,255,107,0.18); }
+    .status-tag.orange { color:var(--orange); background:rgba(255,107,53,0.12);  border:1px solid rgba(255,107,53,0.18); }
+    .status-tag.red    { color:var(--red);    background:rgba(255,68,102,0.12);  border:1px solid rgba(255,68,102,0.18); }
+    .eta-main { display:flex; align-items:flex-end; gap:10px; }
+    .eta-main .minutes { font-size:4rem; line-height:0.9; font-family:"Syne",sans-serif; font-weight:800; color:var(--cyan); text-shadow:0 0 20px rgba(0,212,255,0.2); }
+    .eta-main .unit { font-family:"Space Mono",monospace; color:var(--muted); padding-bottom:8px; }
+    .eta-subline { color:var(--dim); font-size:0.84rem; line-height:1.6; }
+    .detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .detail-grid article { padding:12px; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .bar { position:relative; height:8px; border-radius:999px; background:rgba(255,255,255,0.07); overflow:hidden; margin-top:8px; }
+    .bar span { position:absolute; left:0; top:0; bottom:0; border-radius:inherit; background:linear-gradient(90deg,var(--cyan),var(--green)); }
+    .arrival-list { display:grid; gap:8px; }
+    .arrival-list div { display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px dashed rgba(255,255,255,0.06); color:var(--muted); font-size:0.84rem; font-family:"Space Mono",monospace; }
+    .refresh-wrap { display:flex; justify-content:flex-end; margin-top:18px; }
+
+    /* ── ALERTS ──────────────────────────────────────────── */
+    .alerts-layout { display:grid; grid-template-columns:1.2fr 0.8fr; gap:18px; }
+    .alerts-feed { display:grid; gap:16px; max-height:760px; overflow:auto; padding-right:6px; }
+    .alert-card { display:grid; grid-template-columns:56px 1fr; gap:14px; padding:16px; border-radius:22px; animation:slideAlert 0.35s ease; }
+    @keyframes slideAlert { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+    .alert-icon { width:56px; height:56px; border-radius:18px; display:grid; place-items:center; font-size:1.35rem; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); }
+    .alert-card.approaching .alert-icon { color:var(--cyan);   box-shadow:var(--glow-cyan); }
+    .alert-card.delayed     .alert-icon { color:var(--orange); box-shadow:var(--glow-orange); }
+    .alert-card.critical    .alert-icon { color:var(--red);    box-shadow:0 0 0 1px rgba(255,68,102,0.18),0 0 35px rgba(255,68,102,0.16); }
+    .alert-card.ontime      .alert-icon { color:var(--green); }
+    .alert-head { display:flex; justify-content:space-between; gap:10px; align-items:start; margin-bottom:6px; }
+    .alert-head h3 { font-size:1rem; letter-spacing:-0.02em; }
+    .alert-time { color:var(--dim); font-family:"Space Mono",monospace; font-size:0.72rem; white-space:nowrap; }
+    .alert-body { color:var(--muted); line-height:1.7; font-size:0.9rem; }
+    .tag-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .tag { padding:5px 10px; border-radius:999px; font-size:0.72rem; color:var(--muted); background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06); font-family:"Space Mono",monospace; }
+    .summary-stack { display:grid; gap:16px; align-content:start; }
+    .summary-card { padding:18px; border-radius:24px; }
+    .donut-wrap { display:grid; place-items:center; padding:10px 0 14px; }
+    .donut-wrap svg { width:220px; height:220px; }
+    .summary-rows { display:grid; gap:10px; }
+    .summary-rows div, .health-row, .system-row { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; color:var(--muted); font-size:0.85rem; }
+    .dot { width:11px; height:11px; border-radius:50%; }
+    .line-meter, .health-bar, .sys-bar { height:8px; border-radius:999px; background:rgba(255,255,255,0.06); overflow:hidden; }
+    .line-meter span, .health-bar span, .sys-bar span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--cyan),var(--green)); }
+
+    /* ── CROWD ───────────────────────────────────────────── */
+    .crowd-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    .crowd-card { padding:20px; border-radius:26px; min-height:380px; position:relative; overflow:hidden; }
+    .crowd-top { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
+    .crowd-route { font-family:"Space Mono",monospace; font-size:1.1rem; color:var(--cyan); font-weight:700; }
+    .crowd-status { padding:6px 10px; border-radius:999px; font-size:0.7rem; font-family:"Space Mono",monospace; letter-spacing:0.11em; text-transform:uppercase; }
+    .crowd-status.low  { color:var(--green);  background:rgba(127,255,107,0.12); }
+    .crowd-status.mid  { color:var(--yellow); background:rgba(255,190,61,0.12); }
+    .crowd-status.high { color:var(--red);    background:rgba(255,68,102,0.12); }
+    .gauge-wrap { display:grid; place-items:center; margin:14px 0; }
+    .gauge-wrap svg { width:200px; height:132px; }
+    .seat-map { margin-top:10px; padding:14px; border-radius:18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .seat-row { display:flex; justify-content:center; gap:6px; margin:6px 0; }
+    .seat { width:14px; height:14px; border-radius:4px; }
+    .seat.taken { background:rgba(255,107,53,0.7); }
+    .seat.free  { background:rgba(127,255,107,0.2); border:1px solid rgba(127,255,107,0.6); }
+    .aisle { width:14px; }
+    .crowd-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:16px; }
+    .crowd-stats-grid article { text-align:center; padding:10px; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .coach-heat { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin-top:16px; }
+    .coach-heat div { border-radius:14px; padding:14px 6px; text-align:center; font-family:"Space Mono",monospace; font-size:0.78rem; border:1px solid rgba(255,255,255,0.06); }
+    .peak-chart { height:250px; display:grid; grid-template-columns:repeat(16,1fr); gap:8px; align-items:end; margin-top:18px; }
+    .peak-chart div { display:grid; gap:8px; justify-items:center; }
+    .peak-chart span { width:100%; border-radius:999px 999px 10px 10px; background:linear-gradient(180deg,rgba(0,212,255,0.96),rgba(0,212,255,0.2)); box-shadow:0 0 18px rgba(0,212,255,0.15); }
+    .peak-chart .peak span { background:linear-gradient(180deg,rgba(255,68,102,0.96),rgba(255,68,102,0.24)); }
+    .peak-chart .now  span { background:linear-gradient(180deg,rgba(255,190,61,0.96),rgba(255,190,61,0.2)); }
+    .peak-chart label { color:var(--dim); font-size:0.66rem; font-family:"Space Mono",monospace; }
+
+    /* ── ROUTES ──────────────────────────────────────────── */
+    .planner-card { padding:22px; border-radius:28px; }
+    .planner-form { display:grid; grid-template-columns:1fr 60px 1fr 1fr auto; gap:14px; align-items:end; }
+    .field { display:grid; gap:8px; }
+    .field label { color:var(--dim); font-size:0.76rem; text-transform:uppercase; letter-spacing:0.13em; font-family:"Space Mono",monospace; }
+    .field select, .field input { padding:14px 16px; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:var(--text); outline:none; }
+    .journey-result { margin-top:18px; display:none; gap:14px; }
+    .journey-result.show { display:grid; }
+    .journey-steps { display:grid; gap:12px; }
+    .journey-step { display:grid; grid-template-columns:54px 1fr auto; gap:14px; align-items:center; padding:14px; border-radius:18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .journey-step .icon { width:54px; height:54px; border-radius:16px; display:grid; place-items:center; background:rgba(0,212,255,0.08); color:var(--cyan); font-size:1.2rem; box-shadow:var(--glow-cyan); }
+    .step-time { color:var(--cyan); font-family:"Space Mono",monospace; font-size:0.82rem; }
+    .routes-layout { display:grid; gap:16px; }
+    .route-accordion { border-radius:24px; overflow:hidden; background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015)),rgba(8,15,28,0.88); border:1px solid rgba(255,255,255,0.08); }
+    .route-head { display:grid; grid-template-columns:1fr auto; align-items:center; gap:14px; padding:18px 20px; cursor:pointer; }
+    .route-left { display:flex; align-items:center; gap:14px; }
+    .route-badge { min-width:64px; height:64px; border-radius:18px; display:grid; place-items:center; font-family:"Space Mono",monospace; font-weight:700; font-size:1rem; color:#03131b; }
+    .route-meta p { margin:6px 0 0; color:var(--muted); line-height:1.6; font-size:0.9rem; }
+    .route-right { display:flex; align-items:center; gap:10px; color:var(--muted); font-family:"Space Mono",monospace; font-size:0.76rem; }
+    .route-panel { display:none; border-top:1px solid rgba(255,255,255,0.06); padding:0 20px 20px; }
+    .route-panel.open { display:block; }
+    .stop-list { display:grid; gap:0; margin-top:12px; }
+    .stop-row { display:grid; grid-template-columns:24px 1.5fr 0.8fr 0.7fr 0.5fr; gap:12px; align-items:center; padding:12px 0; border-bottom:1px dashed rgba(255,255,255,0.06); color:var(--muted); font-size:0.9rem; }
+    .stop-dot { width:12px; height:12px; border-radius:50%; background:var(--cyan); box-shadow:0 0 12px rgba(0,212,255,0.4); }
+    .crowd-dot { width:10px; height:10px; border-radius:50%; justify-self:start; }
+
+    /* ── ANALYTICS ───────────────────────────────────────── */
+    .analytics-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+    .kpi-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+    .kpi-card { padding:18px; border-radius:24px; min-height:180px; position:relative; overflow:hidden; background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015)),rgba(8,15,28,0.88); border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow); }
+    .kpi-card::after { content:""; position:absolute; inset:auto -24px -24px auto; width:120px; height:120px; border-radius:50%; background:radial-gradient(circle,rgba(0,212,255,0.18),transparent 70%); }
+    .kpi-icon { font-size:1.55rem; margin-bottom:16px; }
+    .kpi-value { font-family:"Syne",sans-serif; font-size:2.1rem; font-weight:800; line-height:1; margin-bottom:6px; }
+    .kpi-label { color:var(--muted); font-size:0.82rem; text-transform:uppercase; letter-spacing:0.12em; font-family:"Space Mono",monospace; }
+    .kpi-change { margin-top:10px; color:var(--green); font-size:0.8rem; font-family:"Space Mono",monospace; }
+    .chart-card, .analytics-card, .admin-card { padding:20px; border-radius:26px; }
+    .chart-card.wide { grid-column:span 2; }
+    .chart-bars { display:grid; grid-template-columns:repeat(16,1fr); gap:10px; align-items:end; height:280px; margin-top:20px; }
+    .chart-bars div { display:grid; gap:10px; justify-items:center; }
+    .chart-bars span { width:100%; border-radius:999px 999px 10px 10px; background:linear-gradient(180deg,rgba(79,124,255,0.96),rgba(79,124,255,0.2)); box-shadow:0 0 18px rgba(79,124,255,0.18); }
+    .chart-bars .peak span { background:linear-gradient(180deg,rgba(255,107,53,0.96),rgba(255,107,53,0.22)); }
+    .chart-bars .now  span { background:linear-gradient(180deg,rgba(127,255,107,0.96),rgba(127,255,107,0.22)); }
+    .chart-bars label { color:var(--dim); font-family:"Space Mono",monospace; font-size:0.66rem; }
+    .perf-table { display:grid; gap:12px; margin-top:18px; }
+    .perf-row { display:grid; grid-template-columns:64px 60px 1fr; align-items:center; gap:10px; color:var(--muted); font-size:0.86rem; }
+    .ml-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-top:16px; }
+    .ml-grid article { padding:14px; border-radius:18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); }
+    .fi-list { display:grid; gap:12px; margin-top:16px; }
+    .fi-row { display:grid; grid-template-columns:150px 1fr 48px; gap:12px; align-items:center; color:var(--muted); font-size:0.86rem; }
+
+    /* ── ADMIN ───────────────────────────────────────────── */
+    .war-room { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+    .dispatch-list, .incident-list, .system-list, .admin-list { display:grid; gap:12px; margin-top:16px; }
+    .dispatch-item, .incident-item, .admin-list div { display:grid; grid-template-columns:1fr auto auto; gap:10px; align-items:center; padding:12px 14px; border-radius:18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); color:var(--muted); font-size:0.84rem; }
+    .incident-item { grid-template-columns:60px 1fr auto; }
+    .status-chip { padding:6px 10px; border-radius:999px; font-family:"Space Mono",monospace; font-size:0.66rem; letter-spacing:0.1em; text-transform:uppercase; }
+    .status-chip.active   { color:var(--green);  background:rgba(127,255,107,0.12); }
+    .status-chip.delay    { color:var(--orange); background:rgba(255,107,53,0.12); }
+    .status-chip.critical { color:var(--red);    background:rgba(255,68,102,0.12); }
+
+    /* ── VOICE / OFFLINE / TOAST ─────────────────────────── */
+    .voice-modal { position:fixed; inset:0; z-index:110; display:none; place-items:center; background:rgba(2,5,10,0.74); backdrop-filter:blur(16px); }
+    .voice-modal.open { display:grid; }
+    .voice-card { width:min(720px,calc(100vw - 40px)); border-radius:30px; padding:26px; background:radial-gradient(circle at 50% 20%,rgba(0,212,255,0.14),transparent 26%),rgba(5,11,22,0.94); border:1px solid rgba(255,255,255,0.08); box-shadow:var(--shadow); }
+    .voice-orb { width:112px; height:112px; border-radius:50%; display:grid; place-items:center; margin:0 auto 18px; background:radial-gradient(circle,rgba(0,212,255,0.24),rgba(0,212,255,0.04)); border:1px solid rgba(0,212,255,0.22); color:var(--cyan); font-size:2.2rem; animation:voicePulse 2.2s infinite; }
+    @keyframes voicePulse { 0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,0.28);transform:scale(1)} 50%{box-shadow:0 0 0 26px rgba(0,212,255,0);transform:scale(1.03)} }
+    .voice-card h3, .voice-card p { text-align:center; }
+    .voice-card p { color:var(--muted); line-height:1.7; }
+    .voice-box { margin-top:16px; padding:16px; border-radius:18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); color:var(--text); min-height:64px; }
+    .voice-suggestions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; justify-content:center; }
+    .offline-banner { position:fixed; left:calc(var(--sidebar) + 20px); right:20px; bottom:20px; z-index:90; padding:16px 18px; border-radius:18px; display:none; justify-content:space-between; gap:16px; align-items:center; background:rgba(255,190,61,0.12); border:1px solid rgba(255,190,61,0.22); color:#ffd98c; box-shadow:var(--shadow); }
+    .offline-banner.show { display:flex; }
+    .toast-wrap { position:fixed; right:20px; bottom:20px; z-index:120; display:grid; gap:10px; }
+    .toast { min-width:280px; max-width:360px; padding:14px 16px; border-radius:16px; background:rgba(5,11,22,0.94); border:1px solid rgba(255,255,255,0.08); color:var(--text); box-shadow:var(--shadow); animation:toastIn 0.25s ease, toastOut 0.25s ease 4.7s forwards; }
+    @keyframes toastIn  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes toastOut { to{opacity:0;transform:translateY(12px)} }
+
+    /* ── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width:1380px) {
+      :root { --content: calc(100vw - 340px); }
+      .hero-wrap, .dashboard-layout, .alerts-layout { grid-template-columns:1fr; }
+      .right-rail { position:static; }
+      .eta-grid, .analytics-grid, .war-room, .crowd-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .kpi-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    }
+    @media (max-width:1080px) {
+      .sidebar { position:relative; width:auto; inset:auto; }
+      .ticker { left:0; }
+      main { margin-left:0; }
+      .section { width:min(94vw,1400px); }
+      .offline-banner { left:20px; }
+      .planner-form { grid-template-columns:1fr 1fr; }
+      .planner-form .swap-holder { display:none; }
+    }
+    @media (max-width:760px) {
+      .section { padding:44px 0 30px; }
+      .hero-stats, .eta-grid, .crowd-grid, .analytics-grid, .war-room, .kpi-grid { grid-template-columns:1fr; }
+      .chart-card.wide { grid-column:span 1; }
+      .planner-form, .alerts-layout { grid-template-columns:1fr; }
+      .route-head, .journey-step, .dispatch-item, .incident-item { grid-template-columns:1fr; }
+      .stop-row { grid-template-columns:24px 1fr; }
+      .map-popup { width:calc(100% - 32px); right:16px; }
+      .legend-panel, .gps-box, .mini-map { position:static; margin:0 16px 16px; width:auto; }
+      .city-map { height:520px; }
+      .map-stage { padding:16px 0 0; }
+      .voice-card { padding:20px; }
+    }
+
+    /* ══════════════════════════════════════════════════════
+       PROFESSIONAL OVERRIDE — clean dark enterprise theme
+    ══════════════════════════════════════════════════════ */
+    :root {
+      --bg: #0b1220;
+      --bg-soft: #111827;
+      --panel: #111827;
+      --panel-strong: #0f172a;
+      --panel-bright: #172033;
+      --line: rgba(148,163,184,0.16);
+      --line-strong: rgba(148,163,184,0.28);
+      --text: #e5edf7;
+      --muted: #94a3b8;
+      --dim: #64748b;
+      --cyan: #38bdf8;
+      --orange: #f59e0b;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --radius-sm: 10px;
+      --radius: 16px;
+      --radius-lg: 22px;
+      --shadow: 0 10px 30px rgba(2,6,23,0.24);
+      --glow-cyan: none;
+      --glow-orange: none;
+      --content: min(1440px, calc(100vw - 340px));
+    }
+    body { background: #0b1220; color: var(--text); }
+    body::before, body::after, .hero-grid, #particleCanvas, .skyline, .panel-frame { display: none; }
+
+    h1, h2, h3, h4, .logo-title, .kpi-value, .hero-metric .value, .eta-main .minutes {
+      font-family: "DM Sans", sans-serif;
+      letter-spacing: -0.02em;
+    }
+    .ticker { height: 44px; background: rgba(11,18,32,0.96); border-bottom: 1px solid rgba(148,163,184,0.12); backdrop-filter: blur(10px); }
+    .ticker-label { background: #e0f2fe; color: #0f172a; font-size: 0.68rem; letter-spacing: 0.12em; }
+    .ticker-track { color: var(--muted); font-size: 0.82rem; }
+    .sidebar { padding: 20px 16px; background: #0f172a; border-right: 1px solid rgba(148,163,184,0.12); backdrop-filter: none; gap: 14px; }
+    .logo, .hero-panel, .map-shell, .planner-card, .chart-card, .analytics-card, .admin-card, .summary-card,
+    .info-block, .eta-card, .crowd-card, .route-accordion, .kpi-card, .hero-metric, .hud-tile,
+    .popup-grid article, .detail-grid article, .crowd-stats-grid article, .info-grid article,
+    .journey-step, .dispatch-item, .incident-item, .admin-list div {
+      background: var(--panel);
+      border: 1px solid rgba(148,163,184,0.12);
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+    .logo { padding: 14px; border-radius: 14px; }
+    .hex { width: 40px; height: 40px; border-radius: 12px; background: #e0f2fe; color: #0369a1; box-shadow: none; font-size: 1.1rem; }
+    .logo-title { font-size: 1.2rem; font-weight: 700; }
+    .logo-title strong { color: inherit; }
+    .logo-sub, .section-lead, .hero-subtitle, .route-meta p, .alert-body, .hud-tile p { color: var(--muted); }
+    .system-pill { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.22); color: #86efac; letter-spacing: 0.08em; }
+    .nav a { border-radius: 12px; background: transparent; color: var(--muted); }
+    .nav a:hover, .nav a.active { transform: none; color: var(--text); background: rgba(148,163,184,0.08); border-color: rgba(148,163,184,0.1); box-shadow: inset 3px 0 0 #22c55e; }
+    .nav-badge { background: rgba(148,163,184,0.1); color: var(--muted); }
+    .nav-badge.alert { color: #fde68a; background: rgba(245,158,11,0.14); }
+    .sidebar-btn, .mini-btn, .chip-btn, .hero-btn, .action-btn, .popup-close {
+      background: #1e293b; border: 1px solid rgba(148,163,184,0.14); color: var(--text); box-shadow: none;
+    }
+    .sidebar-btn:hover, .mini-btn:hover, .chip-btn:hover, .hero-btn:hover, .action-btn:hover, .popup-close:hover {
+      color: var(--text); border-color: rgba(148,163,184,0.24); box-shadow: none; transform: none;
+    }
+    .chip-btn.active, .mini-btn.active { background: #1d4ed8; border-color: #2563eb; color: #eff6ff; }
+    .section { min-height: auto; padding: 44px 0 30px; }
+    .hero { min-height: auto; padding-top: 72px; }
+    .hero-wrap { grid-template-columns: 1.2fr 0.8fr; gap: 20px; align-items: start; }
+    .mega-title { font-size: clamp(2.5rem,5vw,4rem); line-height: 1.05; text-transform: none; }
+    .mega-title .neon { color: var(--text); text-shadow: none; }
+    .mega-title .neon::before, .mega-title .neon::after { display: none; }
+    .hero-subtitle { max-width: 760px; font-size: 1rem; line-height: 1.7; }
+    .hero-actions { gap: 10px; }
+    .hero-btn { padding: 12px 18px; border-radius: 10px; font-family: "DM Sans", sans-serif; font-weight: 600; letter-spacing: 0; }
+    .hero-btn.primary   { background: #2563eb; color: #eff6ff; box-shadow: none; }
+    .hero-btn.secondary { background: #1e293b; color: var(--text); border-color: rgba(148,163,184,0.16); }
+    .hero-stats { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+    .hero-metric { min-height: 104px; padding: 16px; border-radius: 14px; }
+    .hero-metric::after, .kpi-card::after { display: none; }
+    .hero-metric .value, .kpi-value { font-size: 1.75rem; }
+    .hero-metric .label, .kpi-label { color: var(--dim); font-size: 0.72rem; letter-spacing: 0.08em; }
+    .hero-panel { min-height: auto; padding: 18px; border-radius: 16px; background: var(--panel); }
+    .hud-grid { grid-template-columns: 1fr; gap: 12px; }
+    .hud-tile, .info-block, .summary-card, .eta-card, .crowd-card, .chart-card,
+    .analytics-card, .admin-card, .planner-card, .route-accordion, .kpi-card { border-radius: 16px; }
+    .mini-spectrum span, .signal-cluster span::after, .route-line, .bus-vehicle .bus-core, .pulse,
+    .voice-orb, .countdown-main .minutes { animation-duration: 0s; animation: none; }
+    .map-shell { min-height: auto; background: var(--panel); }
+    .city-map { border-radius: 14px; border: 1px solid rgba(148,163,184,0.12); background: #0b1324; }
+    .legend-panel, .mini-map, .gps-box, .map-popup {
+      background: #0f172a; border: 1px solid rgba(148,163,184,0.14); box-shadow: none; border-radius: 14px;
+    }
+    .map-popup { width: 300px; }
+    .popup-route { color: var(--text); font-size: 1rem; }
+    .route-chip, .tag, .status-tag, .crowd-status, .status-chip, .system-pill, .eyebrow { border-radius: 999px; }
+    .eyebrow { background: rgba(148,163,184,0.08); border-color: rgba(148,163,184,0.12); color: var(--dim); font-size: 0.72rem; letter-spacing: 0.08em; }
+    .eyebrow-dot { background: #22c55e; box-shadow: none; }
+    .eta-card::before { height: 1px; background: rgba(148,163,184,0.16); }
+    .route-chip { padding: 8px 12px; background: #0f172a; border-color: rgba(148,163,184,0.14); box-shadow: none !important; }
+    .route-chip strong, .crowd-route, .popup-route { color: var(--text) !important; }
+    .status-tag.green,  .status-chip.active, .crowd-status.low  { background: rgba(34,197,94,0.14);   border: 1px solid rgba(34,197,94,0.2);  color: #86efac; }
+    .status-tag.orange, .status-chip.delay,  .crowd-status.mid  { background: rgba(245,158,11,0.14);  border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+    .status-tag.red,    .status-chip.critical,.crowd-status.high { background: rgba(239,68,68,0.14);   border: 1px solid rgba(239,68,68,0.2);  color: #fca5a5; }
+    .eta-main .minutes { font-size: 3rem; color: var(--text); text-shadow: none; }
+    .bar, .line-meter, .health-bar, .sys-bar { background: rgba(148,163,184,0.12); }
+    .bar span, .line-meter span, .health-bar span, .sys-bar span { background: #22c55e; }
+    .arrival-list div, .info-list div, .stop-row { border-bottom-color: rgba(148,163,184,0.1); }
+    .alert-card { grid-template-columns: 52px 1fr; border-radius: 16px; border-left: 4px solid transparent; }
+    .alert-card.approaching { border-left-color: #38bdf8; }
+    .alert-card.delayed     { border-left-color: #f59e0b; }
+    .alert-card.critical    { border-left-color: #ef4444; }
+    .alert-card.ontime      { border-left-color: #22c55e; }
+    .alert-icon { width: 52px; height: 52px; border-radius: 12px; background: #0f172a; box-shadow: none !important; }
+    .donut-wrap svg text:first-of-type { font-family: "DM Sans", sans-serif; }
+    .coach-heat div, .seat-map, .popup-grid article, .detail-grid article,
+    .crowd-stats-grid article, .info-grid article, .journey-step, .route-panel,
+    .field select, .field input { background: #0f172a; border-color: rgba(148,163,184,0.12); }
+    .planner-form { grid-template-columns: 1fr 56px 1fr 1fr auto; }
+    .route-head { padding: 16px 18px; }
+    .route-badge { min-width: 56px; height: 56px; border-radius: 12px; color: #0f172a; font-size: 0.95rem; }
+    .chart-bars span, .peak-chart span { box-shadow: none; }
+    .chart-bars      span { background: #3b82f6; }
+    .chart-bars .peak span { background: #f59e0b; }
+    .chart-bars .now  span { background: #22c55e; }
+    .peak-chart      span { background: #94a3b8; }
+    .peak-chart .peak span { background: #f59e0b; }
+    .peak-chart .now  span { background: #22c55e; }
+    .voice-card { border-radius: 18px; background: #0f172a; border-color: rgba(148,163,184,0.12); box-shadow: var(--shadow); }
+    .voice-orb { background: #1e293b; border: 1px solid rgba(148,163,184,0.14); color: var(--text); box-shadow: none; }
+    .voice-box, .toast { background: #111827; border-color: rgba(148,163,184,0.12); }
+    .offline-banner { background: #1e293b; border-color: rgba(148,163,184,0.16); color: var(--text); box-shadow: var(--shadow); border-radius: 14px; }
+    .toast { border-radius: 12px; box-shadow: var(--shadow); }
+
+    @media (max-width:1380px) {
+      .hero-wrap, .dashboard-layout, .alerts-layout { grid-template-columns: 1fr; }
+    }
+    @media (max-width:760px) {
+      .hero-stats, .eta-grid, .crowd-grid, .analytics-grid, .war-room, .kpi-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-top">
+        <div class="hex">⬢</div>
+        <div>
+          <div class="logo-title">METRO<strong>MIND</strong></div>
+          <div class="logo-sub">Chennai's Neural Transit Intelligence Layer</div>
+        </div>
+      </div>
+      <div class="system-pill"><span class="pulse"></span> System online</div>
+    </div>
+    <nav class="nav" id="sideNav">
+      <a href="#hero" class="active"><span>⌂</span><span>Overview</span><span class="nav-badge">01</span></a>
+      <a href="#map"><span>◎</span><span>Live Map</span><span class="nav-badge">847</span></a>
+      <a href="#eta"><span>⏱</span><span>ETA Predictions</span><span class="nav-badge">ML</span></a>
+      <a href="#alerts"><span>🔔</span><span>Alert Center</span><span class="nav-badge alert" id="alertBadge">24</span></a>
+      <a href="#crowd"><span>👥</span><span>Crowd Intel</span><span class="nav-badge">AI</span></a>
+      <a href="#routes"><span>↔</span><span>Route Explorer</span><span class="nav-badge">10</span></a>
+      <a href="#analytics"><span>▦</span><span>Analytics</span><span class="nav-badge">6</span></a>
+      <a href="#admin"><span>⚙</span><span>War Room</span><span class="nav-badge">ADM</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-btn" id="voiceButton"><span>Voice Assistant</span><span>🎤</span></button>
+      <button class="sidebar-btn" id="offlineToggle"><span>Offline Mode</span><span id="offlineState">OFF</span></button>
+      <div class="clock" id="clockBox">--:--:--</div>
+    </div>
+  </aside>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-label">Live</div>
+    <div class="ticker-track">
+      <span>🟢 847 buses active now</span>
+      <span>⚡ 23 routes operational</span>
+      <span>👥 2.3M commuters served today</span>
+      <span>🤖 ML ETA engine accuracy 94.7%</span>
+      <span>📡 GPS mesh coverage 99.1%</span>
+      <span>🔥 Route 23B crowd intensity high</span>
+      <span>✅ Metro Blue Line on schedule</span>
+      <span>🧠 Predictive dispatch boosting on-time performance</span>
+      <span>🟢 847 buses active now</span>
+      <span>⚡ 23 routes operational</span>
+      <span>👥 2.3M commuters served today</span>
+      <span>🤖 ML ETA engine accuracy 94.7%</span>
+      <span>📡 GPS mesh coverage 99.1%</span>
+      <span>🔥 Route 23B crowd intensity high</span>
+      <span>✅ Metro Blue Line on schedule</span>
+      <span>🧠 Predictive dispatch boosting on-time performance</span>
+    </div>
+  </div>
+
+  <main>
+    <!-- ── HERO ──────────────────────────────────────────── -->
+    <section class="section hero" id="hero">
+      <canvas id="particleCanvas"></canvas>
+      <div class="hero-grid"></div>
+      <div class="hero-wrap">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Chennai Metropolitan Transit Intelligence</div>
+          <h1 class="mega-title">
+            <span>METRO</span>
+            <span class="neon" data-text="MIND">MIND</span>
+          </h1>
+          <div class="hero-subtitle">
+            Chennai's neural transit intelligence layer for buses and metro.
+            Live fleet motion. Predictive ETAs. Crowd foresight. Dispatch-grade visibility.
+          </div>
+          <div class="hero-actions">
+            <button class="hero-btn primary" data-scroll="map">Open Live Dashboard</button>
+            <button class="hero-btn secondary" data-scroll="routes">View Routes</button>
+          </div>
+          <div class="hero-stats">
+            <article class="hero-metric">
+              <div class="label">Active buses</div>
+              <div class="value counter" data-target="847">0</div>
+              <div class="delta">+12 vs yesterday</div>
+            </article>
+            <article class="hero-metric">
+              <div class="label">Live routes</div>
+              <div class="value counter" data-target="23">0</div>
+              <div class="delta">all corridors green</div>
+            </article>
+            <article class="hero-metric">
+              <div class="label">ML accuracy</div>
+              <div class="value counter" data-target="94">0</div>
+              <div class="delta">confidence stabilized</div>
+            </article>
+            <article class="hero-metric">
+              <div class="label">Alerts / min</div>
+              <div class="value counter" data-target="12">0</div>
+              <div class="delta">adaptive cadence live</div>
+            </article>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-panel">
+            <div class="panel-frame"></div>
+            <div class="hud-top"><span>Transit War Room</span><span>Node mesh: stable</span></div>
+            <div class="hud-grid">
+              <article class="hud-tile">
+                <h3>Predictive Dispatch Matrix</h3>
+                <p>Live correlation between traffic density, time-of-day flow, headway drift, and seat pressure across Chennai corridors.</p>
+                <div class="mini-spectrum">
+                  <span style="height:24%"></span><span style="height:48%"></span><span style="height:65%"></span>
+                  <span style="height:42%"></span><span style="height:76%"></span><span style="height:58%"></span>
+                  <span style="height:84%"></span><span style="height:46%"></span><span style="height:72%"></span>
+                  <span style="height:54%"></span><span style="height:80%"></span><span style="height:62%"></span>
+                  <span style="height:74%"></span><span style="height:40%"></span>
+                </div>
+              </article>
+              <article class="hud-tile">
+                <h3>Neural Signal Overlay</h3>
+                <p>Dense edge intelligence visualizing GPS confidence, inferred dwell time, and corridor saturation in one motion layer.</p>
+                <div class="signal-cluster">
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+              </article>
+            </div>
+            <div class="chip-row">
+              <button class="chip-btn active" data-scroll="analytics">Ridership Pulse</button>
+              <button class="chip-btn" data-scroll="alerts">Delay Stack</button>
+              <button class="chip-btn" data-scroll="crowd">Crowd Vision</button>
+              <button class="chip-btn" data-scroll="admin">Admin Ops</button>
+            </div>
+            <div class="skyline">
+              <svg viewBox="0 0 1400 180" preserveAspectRatio="none">
+                <defs><linearGradient id="skyGlow" x1="0" x2="1"><stop offset="0%" stop-color="rgba(0,212,255,0.06)"/><stop offset="100%" stop-color="rgba(255,107,53,0.08)"/></linearGradient></defs>
+                <rect x="0" y="0" width="1400" height="180" fill="url(#skyGlow)"/>
+                <rect x="18" y="120" width="26" height="60" fill="rgba(0,212,255,0.18)"/>
+                <rect x="52" y="94" width="30" height="86" fill="rgba(0,212,255,0.14)"/>
+                <rect x="90" y="72" width="42" height="108" fill="rgba(0,212,255,0.24)"/>
+                <rect x="140" y="105" width="22" height="75" fill="rgba(0,212,255,0.12)"/>
+                <rect x="170" y="86" width="35" height="94" fill="rgba(255,107,53,0.16)"/>
+                <rect x="215" y="52" width="28" height="128" fill="rgba(0,212,255,0.18)"/>
+                <rect x="248" y="70" width="52" height="110" fill="rgba(0,212,255,0.16)"/>
+                <rect x="382" y="38" width="28" height="142" fill="rgba(0,212,255,0.25)"/>
+                <rect x="548" y="44" width="20" height="136" fill="rgba(0,212,255,0.18)"/>
+                <rect x="776" y="32" width="30" height="148" fill="rgba(0,212,255,0.22)"/>
+                <rect x="904" y="50" width="26" height="130" fill="rgba(0,212,255,0.18)"/>
+                <rect x="1156" y="40" width="24" height="140" fill="rgba(0,212,255,0.2)"/>
+                <line x1="0" y1="162" x2="1400" y2="162" stroke="rgba(0,212,255,0.35)" stroke-width="3"/>
+                <line x1="0" y1="168" x2="1400" y2="168" stroke="rgba(0,212,255,0.18)" stroke-width="1"/>
+                <g class="city-train">
+                  <rect x="0" y="151" rx="6" ry="6" width="110" height="12" fill="rgba(0,212,255,0.7)"/>
+                  <rect x="12" y="154" width="12" height="6" fill="rgba(255,255,255,0.8)"/>
+                  <rect x="28" y="154" width="12" height="6" fill="rgba(255,255,255,0.8)"/>
+                  <rect x="44" y="154" width="12" height="6" fill="rgba(255,255,255,0.8)"/>
+                  <rect x="60" y="154" width="12" height="6" fill="rgba(255,255,255,0.8)"/>
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── MAP ──────────────────────────────────────────── -->
+    <section class="section" id="map">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Live spatial command layer</div>
+          <h2>Live Map Dashboard</h2>
+          <p class="section-lead">A fully custom Chennai transit surface built with pure SVG, animated routes, metro overlays, and clickable fleet entities.</p>
+        </div>
+        <div class="tab-row">
+          <button class="mini-btn active map-filter" data-layer="buses">Buses</button>
+          <button class="mini-btn active map-filter" data-layer="metro">Metro</button>
+          <button class="mini-btn active map-filter" data-layer="stops">Stops</button>
+          <button class="mini-btn" id="mapRefresh">Refresh Feed</button>
+        </div>
+      </div>
+      <div class="dashboard-layout">
+        <div class="map-shell">
+          <div class="map-topbar">
+            <div class="eyebrow"><span class="eyebrow-dot"></span> Chennai geospatial feed</div>
+            <div class="meta-row">
+              <div class="tag">Sync 13ms</div>
+              <div class="tag">GPS mesh 99.1%</div>
+              <div class="tag">8 buses</div>
+              <div class="tag">2 metro corridors</div>
+            </div>
+          </div>
+          <div class="map-stage">
+            <div class="gps-box">
+              <small>Live coordinates</small>
+              <div class="gps-grid">
+                <div>LAT: <span id="gpsLat">13.0827</span></div>
+                <div>LON: <span id="gpsLon">80.2707</span></div>
+                <div>ALT: <span id="gpsAlt">6.7m</span></div>
+                <div>SAT: <span id="gpsSat">9/12</span></div>
+              </div>
+            </div>
+            <svg class="city-map" id="cityMap" viewBox="0 0 1200 760">
+              <defs>
+                <filter id="softGlow"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                <pattern id="microGrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/></pattern>
+              </defs>
+              <rect width="1200" height="760" fill="#061120"/>
+              <rect width="1200" height="760" fill="url(#microGrid)"/>
+              <path d="M1000 0 C1060 120,1080 260,1072 420 C1064 560,1078 690,1096 760 L1200 760 L1200 0 Z" fill="rgba(0,121,255,0.16)"/>
+              <text x="1100" y="310" fill="rgba(120,190,255,0.44)" font-size="15" transform="rotate(90 1100,310)">Bay of Bengal</text>
+              <g stroke-linecap="round" fill="none">
+                <path d="M120 610 L290 468 L430 340 L550 250 L642 180" stroke="rgba(255,255,255,0.15)" stroke-width="14"/>
+                <path d="M210 760 L290 628 L360 520 L410 420" stroke="rgba(255,255,255,0.12)" stroke-width="11"/>
+                <path d="M70 360 L220 344 L410 328 L580 312 L720 300" stroke="rgba(255,255,255,0.1)" stroke-width="10"/>
+                <path d="M890 80 L954 240 L980 430 L962 670" stroke="rgba(255,255,255,0.09)" stroke-width="9"/>
+                <ellipse cx="520" cy="388" rx="252" ry="200" stroke="rgba(255,255,255,0.08)" stroke-width="6" stroke-dasharray="12 14"/>
+                <ellipse cx="520" cy="388" rx="380" ry="302" stroke="rgba(255,255,255,0.05)" stroke-width="4" stroke-dasharray="10 16"/>
+              </g>
+              <g class="layer-buses">
+                <path id="route21C" class="route-line" d="M120 610 L292 466 L430 342 L555 250 L650 184" stroke="#38bdf8" stroke-width="5" filter="url(#softGlow)"/>
+                <path id="route23B" class="route-line" d="M176 700 L290 586 L418 492 L560 396 L670 302 L760 226" stroke="#f59e0b" stroke-width="5" filter="url(#softGlow)"/>
+                <path id="route47"  class="route-line" d="M80 360 L230 348 L418 326 L580 310 L760 298" stroke="#22c55e" stroke-width="5" filter="url(#softGlow)"/>
+                <path id="route5B"  class="route-line" d="M320 110 L398 204 L472 312 L536 416 L574 514 L602 650" stroke="#8b5cf6" stroke-width="5" filter="url(#softGlow)"/>
+                <path id="route19E" class="route-line" d="M790 646 L692 560 L600 466 L514 372 L430 274 L348 168" stroke="#f59e0b" stroke-width="5" filter="url(#softGlow)"/>
+                <g class="bus-stop-layer layer-stops">
+                  <circle cx="292" cy="466" r="6" fill="#38bdf8"/><circle cx="430" cy="342" r="6" fill="#38bdf8"/>
+                  <circle cx="555" cy="250" r="6" fill="#38bdf8"/><circle cx="290" cy="586" r="6" fill="#f59e0b"/>
+                  <circle cx="418" cy="492" r="6" fill="#f59e0b"/><circle cx="560" cy="396" r="6" fill="#f59e0b"/>
+                  <circle cx="760" cy="298" r="6" fill="#22c55e"/><circle cx="472" cy="312" r="6" fill="#8b5cf6"/>
+                  <circle cx="600" cy="466" r="6" fill="#f59e0b"/><circle cx="348" cy="168" r="6" fill="#f59e0b"/>
+                  <circle cx="500" cy="350" r="5" fill="#7dd3fc"/><circle cx="620" cy="310" r="5" fill="#7dd3fc"/>
+                  <circle cx="540" cy="430" r="5" fill="#fcd34d"/><circle cx="450" cy="270" r="5" fill="#86efac"/>
+                  <circle cx="330" cy="338" r="5" fill="#86efac"/>
+                </g>
+                <g class="bus-vehicle" data-bus="TN-01-BX-4421"><circle class="bus-core" r="12" fill="#38bdf8"><animateMotion dur="14s" repeatCount="indefinite"><mpath href="#route21C"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-33-K-9902"><circle class="bus-core" r="12" fill="#38bdf8"><animateMotion dur="14s" begin="-5s" repeatCount="indefinite"><mpath href="#route21C"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-04-N-8834"><circle class="bus-core" r="12" fill="#f59e0b"><animateMotion dur="16s" repeatCount="indefinite"><mpath href="#route23B"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-41-B-1123"><circle class="bus-core" r="12" fill="#f59e0b"><animateMotion dur="16s" begin="-7s" repeatCount="indefinite"><mpath href="#route23B"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-09-X-2217"><circle class="bus-core" r="12" fill="#22c55e"><animateMotion dur="20s" repeatCount="indefinite"><mpath href="#route47"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-07-D-3344"><circle class="bus-core" r="12" fill="#22c55e"><animateMotion dur="20s" begin="-10s" repeatCount="indefinite"><mpath href="#route47"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-15-Z-4430"><circle class="bus-core" r="12" fill="#8b5cf6"><animateMotion dur="15s" begin="-4s" repeatCount="indefinite"><mpath href="#route5B"/></animateMotion></circle></g>
+                <g class="bus-vehicle" data-bus="TN-22-F-7711"><circle class="bus-core" r="12" fill="#fbbf24"><animateMotion dur="17s" begin="-3s" repeatCount="indefinite"><mpath href="#route19E"/></animateMotion></circle></g>
+              </g>
+              <g class="layer-metro">
+                <path id="metroBlue" d="M930 120 L840 162 L738 198 L640 216 L536 226 L432 234 L320 242 L226 254 L142 272" stroke="#3b82f6" stroke-width="8" fill="none" filter="url(#softGlow)"/>
+                <path id="metroGreen" d="M448 678 L470 590 L492 490 L514 392 L536 300 L560 220 L592 148 L628 102" stroke="#2ecc71" stroke-width="8" fill="none" filter="url(#softGlow)"/>
+                <g fill="#3b82f6">
+                  <circle cx="930" cy="120" r="10"/><circle cx="840" cy="162" r="10"/><circle cx="738" cy="198" r="10"/>
+                  <circle cx="640" cy="216" r="12" fill="#7c3aed"/><circle cx="536" cy="226" r="10"/>
+                  <circle cx="432" cy="234" r="10"/><circle cx="320" cy="242" r="10"/>
+                  <circle cx="226" cy="254" r="10"/><circle cx="142" cy="272" r="10"/>
+                </g>
+                <g fill="#2ecc71">
+                  <circle cx="448" cy="678" r="10"/><circle cx="470" cy="590" r="10"/>
+                  <circle cx="492" cy="490" r="10"/><circle cx="514" cy="392" r="10"/>
+                  <circle cx="536" cy="300" r="10"/><circle cx="560" cy="220" r="10"/>
+                  <circle cx="592" cy="148" r="10"/><circle cx="628" cy="102" r="10"/>
+                </g>
+                <rect width="36" height="14" rx="7" fill="#3b82f6"><animateMotion dur="18s" repeatCount="indefinite"><mpath href="#metroBlue"/></animateMotion></rect>
+                <rect width="36" height="14" rx="7" fill="#2ecc71"><animateMotion dur="20s" begin="-8s" repeatCount="indefinite"><mpath href="#metroGreen"/></animateMotion></rect>
+              </g>
+              <g>
+                <rect x="756" y="204" width="24" height="24" rx="6" fill="rgba(245,158,11,0.22)" stroke="#f59e0b"/>
+                <text x="790" y="222" fill="#f59e0b" font-size="14" font-family="DM Sans">Chennai Central</text>
+                <path d="M970 392 C983 404,986 421,972 436 C958 424,956 406,970 392 Z" fill="rgba(76,174,255,0.44)"/>
+                <text x="992" y="424" fill="rgba(120,190,255,0.8)" font-size="14" font-family="DM Sans">Marina</text>
+              </g>
+            </svg>
+            <div class="map-popup" id="mapPopup">
+              <div class="popup-head">
+                <div><div class="popup-route" id="popupRoute">21C</div><small id="popupStatus">On time</small></div>
+                <button class="popup-close" id="popupClose">✕</button>
+              </div>
+              <div class="popup-grid">
+                <article><small>Bus ID</small><strong id="popupBus">TN-01-BX-4421</strong></article>
+                <article><small>Speed</small><strong id="popupSpeed">42 km/h</strong></article>
+                <article><small>Occupancy</small><strong id="popupOccupancy">67%</strong></article>
+                <article><small>ETA</small><strong id="popupEta">4 min</strong></article>
+                <article><small>Next stop</small><strong id="popupStop">T.Nagar</strong></article>
+                <article><small>Seats left</small><strong id="popupSeats">18</strong></article>
+                <article><small>Driver</small><strong id="popupDriver">Rajan K.</strong></article>
+                <article><small>AC</small><strong id="popupAc">Yes</strong></article>
+              </div>
+              <div class="chip-row" style="margin-top:14px">
+                <button class="mini-btn">Set alert</button>
+                <button class="mini-btn">Track bus</button>
+              </div>
+            </div>
+            <div class="legend-panel">
+              <small>Route legend</small>
+              <div class="legend-grid">
+                <div class="legend-item"><span class="legend-swatch" style="background:#38bdf8;color:#38bdf8"></span> 21C Thiruvanmiyur→Koyambedu</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#f59e0b;color:#f59e0b"></span> 23B Tambaram→Broadway</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#22c55e;color:#22c55e"></span> 47 Perambur→Velachery</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#8b5cf6;color:#8b5cf6"></span> 5B Avadi→Adyar</div>
+                <div class="legend-item"><span class="legend-swatch" style="background:#fbbf24;color:#fbbf24"></span> 19E Besant Nagar→Poonamallee</div>
+                <div class="legend-item"><span class="legend-line" style="background:#3b82f6"></span> Metro Blue Line</div>
+                <div class="legend-item"><span class="legend-line" style="background:#2ecc71"></span> Metro Green Line</div>
+              </div>
+            </div>
+            <div class="mini-map">
+              <svg viewBox="0 0 300 210">
+                <rect width="300" height="210" fill="#0b1324"/>
+                <path d="M30 168 L74 128 L109 93 L140 70 L166 50" stroke="#38bdf8" stroke-width="4" fill="none"/>
+                <path d="M44 194 L74 163 L108 136 L142 108 L172 82 L194 60" stroke="#f59e0b" stroke-width="4" fill="none"/>
+                <path d="M20 98 L63 94 L108 88 L144 84 L194 80" stroke="#22c55e" stroke-width="4" fill="none"/>
+                <path d="M82 30 L106 56 L126 88 L145 118 L154 146 L160 182" stroke="#8b5cf6" stroke-width="4" fill="none"/>
+                <rect x="78" y="66" width="110" height="74" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="right-rail">
+          <div class="info-block panel">
+            <small>Fleet pulse</small>
+            <h3>Rapid Transit Snapshot</h3>
+            <div class="info-grid">
+              <article><small>Fleet live</small><strong>847 / 862</strong></article>
+              <article><small>Metro trains</small><strong>31 active</strong></article>
+              <article><small>Avg headway</small><strong>6.4 min</strong></article>
+              <article><small>Signal loss</small><strong>0.9%</strong></article>
+            </div>
+            <div class="info-list">
+              <div><span>Route 23B pressure</span><strong>High</strong></div>
+              <div><span>Blue line status</span><strong>On schedule</strong></div>
+              <div><span>Fastest corridor</span><strong>47 East Arc</strong></div>
+              <div><span>Most delayed node</span><strong>Guindy</strong></div>
+            </div>
+          </div>
+          <div class="info-block panel">
+            <small>Command actions</small>
+            <h3>Operator tools</h3>
+            <div class="chip-row">
+              <button class="mini-btn">Reroute 23B</button>
+              <button class="mini-btn">Broadcast alert</button>
+              <button class="mini-btn">Boost Blue Line</button>
+              <button class="mini-btn">Snapshot export</button>
+            </div>
+          </div>
+          <div class="info-block panel">
+            <small>Realtime coordinates</small>
+            <h3>Live sensor braid</h3>
+            <div class="arrival-list">
+              <div><span>Chennai Central</span><strong>13.0827, 80.2707</strong></div>
+              <div><span>T.Nagar</span><strong>13.0418, 80.2337</strong></div>
+              <div><span>Guindy</span><strong>13.0067, 80.2206</strong></div>
+              <div><span>Velachery</span><strong>12.9791, 80.2212</strong></div>
+              <div><span>Tambaram</span><strong>12.9249, 80.1000</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ETA ──────────────────────────────────────────── -->
+    <section class="section" id="eta">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Machine learning prediction rail</div>
+          <h2>ETA Prediction Panel</h2>
+          <p class="section-lead">Countdown timers, confidence bars, traffic states, and delay indicators powered by live ML inference updates.</p>
+        </div>
+        <div class="tab-row">
+          <div class="tag">GradientBoost v2.4</div>
+          <div class="tag">Accuracy 94.7%</div>
+          <div class="tag" id="etaUpdated">Updated just now</div>
+        </div>
+      </div>
+      <div class="eta-grid">
+        <article class="eta-card dashboard-card">
+          <div class="route-chip"><strong style="color:#38bdf8">21C</strong><span>Thiruvanmiyur → Koyambedu</span></div>
+          <div class="status-tag green">On time</div>
+          <div class="eta-main"><div class="minutes" id="eta21C">4</div><div class="unit">min</div></div>
+          <div class="eta-subline">Next 3 buses: 4 min, 12 min, 21 min</div>
+          <div class="detail-grid">
+            <article><small>Traffic</small><strong style="color:#fcd34d">Medium</strong></article>
+            <article><small>Delay</small><strong style="color:#86efac">+0 min</strong></article>
+            <article><small>ML confidence</small><div class="bar"><span style="width:92%"></span></div></article>
+            <article><small>Speed</small><strong>38 km/h</strong></article>
+          </div>
+          <div class="arrival-list">
+            <div><span>Adyar Signal</span><strong>Current</strong></div>
+            <div><span>T.Nagar</span><strong>+4m</strong></div>
+            <div><span>Vadapalani</span><strong>+14m</strong></div>
+          </div>
+        </article>
+        <article class="eta-card dashboard-card">
+          <div class="route-chip"><strong style="color:#f59e0b">23B</strong><span>Tambaram → Broadway</span></div>
+          <div class="status-tag orange">Delayed</div>
+          <div class="eta-main"><div class="minutes" id="eta23B">11</div><div class="unit">min</div></div>
+          <div class="eta-subline">Next 3 buses: 11 min, 24 min, 36 min</div>
+          <div class="detail-grid">
+            <article><small>Traffic</small><strong style="color:#fca5a5">High</strong></article>
+            <article><small>Delay</small><strong style="color:#f59e0b">+7 min</strong></article>
+            <article><small>ML confidence</small><div class="bar"><span style="width:78%;background:#f59e0b"></span></div></article>
+            <article><small>Speed</small><strong>22 km/h</strong></article>
+          </div>
+          <div class="arrival-list">
+            <div><span>Guindy Signal</span><strong>accident zone</strong></div>
+            <div><span>Saidapet</span><strong>+11m</strong></div>
+            <div><span>Teynampet</span><strong>+19m</strong></div>
+          </div>
+        </article>
+        <article class="eta-card dashboard-card">
+          <div class="route-chip"><strong style="color:#22c55e">47</strong><span>Perambur → Velachery</span></div>
+          <div class="status-tag green">On time</div>
+          <div class="eta-main"><div class="minutes" id="eta47">7</div><div class="unit">min</div></div>
+          <div class="eta-subline">Next 3 buses: 7 min, 15 min, 28 min</div>
+          <div class="detail-grid">
+            <article><small>Traffic</small><strong style="color:#86efac">Low</strong></article>
+            <article><small>Delay</small><strong style="color:#86efac">+0 min</strong></article>
+            <article><small>ML confidence</small><div class="bar"><span style="width:96%"></span></div></article>
+            <article><small>Speed</small><strong>47 km/h</strong></article>
+          </div>
+          <div class="arrival-list">
+            <div><span>Perambur</span><strong>Current</strong></div>
+            <div><span>Chetpet</span><strong>+7m</strong></div>
+            <div><span>Velachery</span><strong>+18m</strong></div>
+          </div>
+        </article>
+        <article class="eta-card dashboard-card">
+          <div class="route-chip"><strong style="color:#8b5cf6">5B</strong><span>Avadi → Adyar</span></div>
+          <div class="status-tag orange">Slight delay</div>
+          <div class="eta-main"><div class="minutes" id="eta5B">9</div><div class="unit">min</div></div>
+          <div class="eta-subline">Next 3 buses: 9 min, 19 min, 31 min</div>
+          <div class="detail-grid">
+            <article><small>Traffic</small><strong style="color:#fcd34d">Medium</strong></article>
+            <article><small>Delay</small><strong style="color:#fcd34d">+3 min</strong></article>
+            <article><small>ML confidence</small><div class="bar"><span style="width:85%;background:#8b5cf6"></span></div></article>
+            <article><small>Speed</small><strong>31 km/h</strong></article>
+          </div>
+          <div class="arrival-list">
+            <div><span>Anna Nagar</span><strong>Current</strong></div>
+            <div><span>Vadapalani</span><strong>+9m</strong></div>
+            <div><span>Adyar</span><strong>+26m</strong></div>
+          </div>
+        </article>
+        <article class="eta-card dashboard-card">
+          <div class="route-chip"><strong style="color:#3b82f6">BLUE</strong><span>Airport → Wimco Nagar</span></div>
+          <div class="status-tag green">Metro on time</div>
+          <div class="eta-main"><div class="minutes" id="etaMETROBLUE">3</div><div class="unit">min</div></div>
+          <div class="eta-subline">Frequency every 6 minutes</div>
+          <div class="detail-grid">
+            <article><small>Platform</small><strong>2 → Wimco</strong></article>
+            <article><small>Crowd</small><strong style="color:#86efac">Comfortable</strong></article>
+            <article><small>ML confidence</small><div class="bar"><span style="width:97%;background:#3b82f6"></span></div></article>
+            <article><small>Coach load</small><strong>30% avg</strong></article>
+          </div>
+          <div class="arrival-list">
+            <div><span>Airport</span><strong>+3m</strong></div>
+            <div><span>Alandur</span><strong>+8m</strong></div>
+            <div><span>Koyambedu</span><strong>+18m</strong></div>
+          </div>
+        </article>
+        <article class="eta-card dashboard-card">
+          <div class="route-chip"><strong style="color:#f59e0b">19E</strong><span>Besant Nagar → Poonamallee</span></div>
+          <div class="status-tag red">Cancelled</div>
+          <div class="eta-main"><div class="minutes" id="eta19E">35</div><div class="unit">min</div></div>
+          <div class="eta-subline">Vehicle breakdown near Vadapalani. Next service 35 min.</div>
+          <div class="detail-grid">
+            <article><small>Status</small><strong style="color:#fca5a5">Suspended</strong></article>
+            <article><small>Fallback</small><strong>21C + 5B</strong></article>
+            <article><small>Confidence</small><div class="bar"><span style="width:58%;background:#ef4444"></span></div></article>
+            <article><small>Ops note</small><strong>Recovery underway</strong></article>
+          </div>
+          <div class="arrival-list">
+            <div><span>Issue detected</span><strong>Vadapalani</strong></div>
+            <div><span>Team ETA</span><strong>12 min</strong></div>
+            <div><span>Reroute</span><strong>enabled</strong></div>
+          </div>
+        </article>
+      </div>
+      <div class="refresh-wrap">
+        <button class="action-btn" id="refreshEta" style="padding:14px 18px">Refresh Predictions</button>
+      </div>
+    </section>
+
+    <!-- ── ALERTS ────────────────────────────────────────── -->
+    <section class="section" id="alerts">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Automated commuter notifications</div>
+          <h2>Smart Alert Center</h2>
+          <p class="section-lead">Dynamic alert feed with approach notices, delays, critical incidents, and on-time confirmations. New alerts animate in without page refresh.</p>
+        </div>
+        <div class="tab-row">
+          <button class="mini-btn active alert-filter" data-filter="all">All</button>
+          <button class="mini-btn alert-filter" data-filter="approaching">Approaching</button>
+          <button class="mini-btn alert-filter" data-filter="delayed">Delayed</button>
+          <button class="mini-btn alert-filter" data-filter="critical">Critical</button>
+          <button class="mini-btn alert-filter" data-filter="ontime">On Time</button>
+          <button class="mini-btn" id="soundToggle">🔔</button>
+        </div>
+      </div>
+      <div class="alerts-layout">
+        <div class="alerts-feed" id="alertFeed">
+          <article class="alert-card dashboard-card approaching" data-type="approaching">
+            <div class="alert-icon">🚌</div>
+            <div>
+              <div class="alert-head"><h3>Bus 21C approaching T.Nagar</h3><div class="alert-time">just now</div></div>
+              <div class="alert-body">Bus TN-01-BX-4421 will arrive at <strong>T.Nagar Bus Stop</strong> in <strong>4 minutes</strong>. Moderate crowd, 18 seats remaining.</div>
+              <div class="tag-row"><span class="tag">21C</span><span class="tag">T.Nagar</span><span class="tag">On time</span></div>
+            </div>
+          </article>
+          <article class="alert-card dashboard-card critical" data-type="critical">
+            <div class="alert-icon">⚠️</div>
+            <div>
+              <div class="alert-head"><h3>Route 23B major disruption</h3><div class="alert-time">2 min ago</div></div>
+              <div class="alert-body">Accident near <strong>Guindy Signal</strong>. 23B services delayed by <strong>15–20 minutes</strong>. Adaptive reroute suggestions pushed to commuters.</div>
+              <div class="tag-row"><span class="tag">23B</span><span class="tag">Guindy</span><span class="tag">Critical</span></div>
+            </div>
+          </article>
+          <article class="alert-card dashboard-card ontime" data-type="ontime">
+            <div class="alert-icon">✅</div>
+            <div>
+              <div class="alert-head"><h3>Metro Blue Line stabilized</h3><div class="alert-time">5 min ago</div></div>
+              <div class="alert-body">Extra train inserted between Airport and Koyambedu. Service has normalized and headway is back to <strong>6 minutes</strong>.</div>
+              <div class="tag-row"><span class="tag">Blue Line</span><span class="tag">Recovery</span></div>
+            </div>
+          </article>
+          <article class="alert-card dashboard-card delayed" data-type="delayed">
+            <div class="alert-icon">⏰</div>
+            <div>
+              <div class="alert-head"><h3>Route 5B running late</h3><div class="alert-time">8 min ago</div></div>
+              <div class="alert-body">Bus TN-15-Z-4430 is running <strong>8 minutes behind schedule</strong> due to signal drag near Anna Nagar 2nd Avenue.</div>
+              <div class="tag-row"><span class="tag">5B</span><span class="tag">Delay</span></div>
+            </div>
+          </article>
+        </div>
+        <div class="summary-stack">
+          <div class="summary-card alert-summary">
+            <small>Alert composition</small>
+            <div class="donut-wrap">
+              <svg viewBox="0 0 220 220">
+                <circle cx="110" cy="110" r="78" stroke="rgba(255,255,255,0.06)" stroke-width="24" fill="none"/>
+                <circle cx="110" cy="110" r="78" stroke="#22c55e" stroke-width="24" stroke-dasharray="245 490" transform="rotate(-90 110 110)" fill="none"/>
+                <circle cx="110" cy="110" r="78" stroke="#f59e0b" stroke-width="24" stroke-dasharray="128 490" stroke-dashoffset="-245" transform="rotate(-90 110 110)" fill="none"/>
+                <circle cx="110" cy="110" r="78" stroke="#f97316" stroke-width="24" stroke-dasharray="76 490" stroke-dashoffset="-373" transform="rotate(-90 110 110)" fill="none"/>
+                <circle cx="110" cy="110" r="78" stroke="#ef4444" stroke-width="24" stroke-dasharray="41 490" stroke-dashoffset="-449" transform="rotate(-90 110 110)" fill="none"/>
+                <text x="110" y="103" text-anchor="middle" fill="#e5edf7" font-size="32" font-family="DM Sans" font-weight="800">847</text>
+                <text x="110" y="126" text-anchor="middle" fill="#64748b" font-size="12" font-family="DM Sans">fleet entities</text>
+              </svg>
+            </div>
+            <div class="summary-rows">
+              <div><span class="dot" style="background:#22c55e"></span><span>On time</span><strong>612</strong></div>
+              <div><span class="dot" style="background:#f59e0b"></span><span>Minor delay</span><strong>183</strong></div>
+              <div><span class="dot" style="background:#f97316"></span><span>Approaching</span><strong>24</strong></div>
+              <div><span class="dot" style="background:#ef4444"></span><span>Critical</span><strong>28</strong></div>
+            </div>
+          </div>
+          <div class="summary-card alert-summary">
+            <small>System health</small>
+            <div class="health-row" style="margin-top:16px"><span>GPS</span><div class="health-bar"><span style="width:99%"></span></div><strong>99%</strong></div>
+            <div class="health-row"><span>ML</span><div class="health-bar"><span style="width:95%"></span></div><strong>95%</strong></div>
+            <div class="health-row"><span>DB</span><div class="health-bar"><span style="width:100%"></span></div><strong>100%</strong></div>
+            <div class="health-row"><span>WS</span><div class="health-bar"><span style="width:98%"></span></div><strong>98%</strong></div>
+          </div>
+          <div class="summary-card alert-summary">
+            <small>Alert velocity</small>
+            <h3 style="font-size:3rem;margin-top:10px" id="alertsPerMin">12</h3>
+            <p class="section-lead" style="font-size:0.92rem;max-width:none">Average alerts generated per minute across arrival proximity, service drift, and incident detection.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CROWD ─────────────────────────────────────────── -->
+    <section class="section" id="crowd">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Demand and comfort intelligence</div>
+          <h2>Crowd Intelligence Dashboard</h2>
+          <p class="section-lead">Occupancy gauges, seat counts, coach heatmaps, and peak-hour crowd bars help commuters avoid packed vehicles before they board.</p>
+        </div>
+        <div class="tab-row">
+          <div class="tag">Camera AI + weight sensors</div>
+          <div class="tag">Best time model active</div>
+          <div class="tag" id="crowdUpdated">Live</div>
+        </div>
+      </div>
+      <div class="crowd-grid">
+        <article class="crowd-card dashboard-card">
+          <div class="crowd-top">
+            <div><div class="crowd-route">21C</div><div class="tiny-label">Bus TN-01-BX-4421</div></div>
+            <div class="crowd-status mid">Moderate</div>
+          </div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 220 140">
+              <path d="M20 120 A90 90 0 0 1 200 120" stroke="rgba(255,255,255,0.08)" stroke-width="18" fill="none" stroke-linecap="round"/>
+              <path id="gauge21C" d="M20 120 A90 90 0 0 1 200 120" stroke="#f59e0b" stroke-width="18" fill="none" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="92"/>
+              <text x="110" y="94" fill="#e5edf7" font-size="36" font-family="DM Sans" font-weight="800" text-anchor="middle">67%</text>
+              <text x="110" y="116" fill="#64748b" font-size="12" font-family="DM Sans" text-anchor="middle">occupied</text>
+            </svg>
+          </div>
+          <div class="seat-map">
+            <div class="seat-row"><span class="seat taken"/><span class="seat taken"/><span class="aisle"/><span class="seat taken"/><span class="seat free"/></div>
+            <div class="seat-row"><span class="seat taken"/><span class="seat taken"/><span class="aisle"/><span class="seat free"/><span class="seat taken"/></div>
+            <div class="seat-row"><span class="seat free"/><span class="seat taken"/><span class="aisle"/><span class="seat free"/><span class="seat free"/></div>
+            <div class="seat-row"><span class="seat taken"/><span class="seat free"/><span class="aisle"/><span class="seat taken"/><span class="seat taken"/></div>
+          </div>
+          <div class="crowd-stats-grid">
+            <article><small>Seated</small><strong>28/38</strong></article>
+            <article><small>Standing</small><strong>12</strong></article>
+            <article><small>Total</small><strong>40/50</strong></article>
+            <article><small>Comfort</small><strong>OK</strong></article>
+          </div>
+          <div class="tag-row" style="margin-top:16px"><span class="tag">Tip: next bus only 23% occupied</span></div>
+        </article>
+        <article class="crowd-card dashboard-card">
+          <div class="crowd-top">
+            <div><div class="crowd-route" style="color:#ef4444">23B</div><div class="tiny-label">Bus TN-04-N-8834</div></div>
+            <div class="crowd-status high">Overcrowded</div>
+          </div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 220 140">
+              <path d="M20 120 A90 90 0 0 1 200 120" stroke="rgba(255,255,255,0.08)" stroke-width="18" fill="none" stroke-linecap="round"/>
+              <path id="gauge23B" d="M20 120 A90 90 0 0 1 200 120" stroke="#ef4444" stroke-width="18" fill="none" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="18"/>
+              <text x="110" y="94" fill="#e5edf7" font-size="36" font-family="DM Sans" font-weight="800" text-anchor="middle">94%</text>
+              <text x="110" y="116" fill="#64748b" font-size="12" font-family="DM Sans" text-anchor="middle">occupied</text>
+            </svg>
+          </div>
+          <div class="tag-row"><span class="tag" style="color:#fca5a5;border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.08)">Avoid boarding this bus now</span></div>
+          <div class="crowd-stats-grid">
+            <article><small>Seated</small><strong>38/38</strong></article>
+            <article><small>Standing</small><strong>29</strong></article>
+            <article><small>Total</small><strong>67/50</strong></article>
+            <article><small>Comfort</small><strong>Bad</strong></article>
+          </div>
+          <div class="tag-row" style="margin-top:16px"><span class="tag">Wait 8 min for next bus at 41% occupancy</span></div>
+        </article>
+        <article class="crowd-card dashboard-card">
+          <div class="crowd-top">
+            <div><div class="crowd-route" style="color:#3b82f6">Blue Line</div><div class="tiny-label">Train BL-047</div></div>
+            <div class="crowd-status low">Comfortable</div>
+          </div>
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 220 140">
+              <path d="M20 120 A90 90 0 0 1 200 120" stroke="rgba(255,255,255,0.08)" stroke-width="18" fill="none" stroke-linecap="round"/>
+              <path d="M20 120 A90 90 0 0 1 200 120" stroke="#22c55e" stroke-width="18" fill="none" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="168"/>
+              <text x="110" y="94" fill="#e5edf7" font-size="36" font-family="DM Sans" font-weight="800" text-anchor="middle">30%</text>
+              <text x="110" y="116" fill="#64748b" font-size="12" font-family="DM Sans" text-anchor="middle">occupied</text>
+            </svg>
+          </div>
+          <div class="coach-heat">
+            <div style="background:rgba(255,105,180,0.14)">L<br>45%</div>
+            <div style="background:rgba(34,197,94,0.12)">1<br>28%</div>
+            <div style="background:rgba(34,197,94,0.12)">2<br>31%</div>
+            <div style="background:rgba(245,158,11,0.14)">3<br>52%</div>
+            <div style="background:rgba(34,197,94,0.12)">4<br>22%</div>
+            <div style="background:rgba(34,197,94,0.12)">5<br>18%</div>
+          </div>
+        </article>
+        <article class="crowd-card dashboard-card">
+          <div class="crowd-top">
+            <div><div class="crowd-route" style="color:#f59e0b">Peak Hours</div><div class="tiny-label">T.Nagar stop</div></div>
+            <div class="crowd-status mid">AI guidance</div>
+          </div>
+          <div class="peak-chart">
+            <div><span style="height:22%"></span><label>6A</label></div>
+            <div><span style="height:44%"></span><label>7A</label></div>
+            <div class="peak"><span style="height:96%"></span><label>8A</label></div>
+            <div class="peak"><span style="height:90%"></span><label>9A</label></div>
+            <div><span style="height:52%"></span><label>10A</label></div>
+            <div><span style="height:38%"></span><label>11A</label></div>
+            <div><span style="height:42%"></span><label>12P</label></div>
+            <div><span style="height:58%"></span><label>1P</label></div>
+            <div><span style="height:40%"></span><label>2P</label></div>
+            <div><span style="height:34%"></span><label>3P</label></div>
+            <div><span style="height:51%"></span><label>4P</label></div>
+            <div class="peak"><span style="height:100%"></span><label>5P</label></div>
+            <div class="peak"><span style="height:95%"></span><label>6P</label></div>
+            <div class="now"><span style="height:74%"></span><label>7P</label></div>
+            <div><span style="height:47%"></span><label>8P</label></div>
+            <div><span style="height:25%"></span><label>9P</label></div>
+          </div>
+          <div class="tag-row" style="margin-top:16px"><span class="tag">Best time to travel: 10AM–12PM or after 9PM</span></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── ROUTES ────────────────────────────────────────── -->
+    <section class="section" id="routes">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Intelligent path planning</div>
+          <h2>Route Explorer</h2>
+          <p class="section-lead">Explore ten major Chennai routes, inspect stop sequences, compare crowd levels, and plan a journey with AI-guided transit steps.</p>
+        </div>
+      </div>
+      <div class="planner-card">
+        <div class="section-header" style="margin-bottom:18px">
+          <div><small class="label">Journey planner</small><h3>Plan your journey</h3></div>
+          <div class="tag">Adaptive suggestion engine</div>
+        </div>
+        <div class="planner-form">
+          <div class="field">
+            <label>From</label>
+            <select id="journeyFrom">
+              <option value="">Select stop</option>
+              <option>Chennai Central</option><option>T.Nagar</option><option>Guindy</option>
+              <option>Adyar</option><option>Koyambedu</option><option>Velachery</option>
+              <option>Tambaram</option><option>Perambur</option><option>Anna Nagar</option><option>Airport</option>
+            </select>
+          </div>
+          <div class="swap-holder">
+            <button class="hero-btn secondary" id="swapStops" style="padding:14px 0;width:60px">⇌</button>
+          </div>
+          <div class="field">
+            <label>To</label>
+            <select id="journeyTo">
+              <option value="">Select stop</option>
+              <option>Chennai Central</option><option>T.Nagar</option><option>Guindy</option>
+              <option>Adyar</option><option>Koyambedu</option><option>Velachery</option>
+              <option>Tambaram</option><option>Perambur</option><option>Anna Nagar</option><option>Airport</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>When</label>
+            <select id="journeyWhen">
+              <option>Now</option><option>In 30 min</option><option>In 1 hour</option><option>Tonight</option>
+            </select>
+          </div>
+          <button class="hero-btn primary" id="planJourney">Find Route</button>
+        </div>
+        <div class="journey-result" id="journeyResult">
+          <div class="journey-steps">
+            <div class="journey-step"><div class="icon">📍</div><div><strong>Walk 3 minutes</strong><br><span style="color:var(--muted)">to T.Nagar Bus Stop</span></div><div class="step-time">Now</div></div>
+            <div class="journey-step"><div class="icon">🚌</div><div><strong>Take Route 21C</strong><br><span style="color:var(--muted)">T.Nagar to Adyar, 8 stops</span></div><div class="step-time">7:34 PM</div></div>
+            <div class="journey-step"><div class="icon">🏁</div><div><strong>Arrive Adyar</strong><br><span style="color:var(--muted)">Total 22 min, fare ₹14, moderate crowd</span></div><div class="step-time">7:56 PM</div></div>
+          </div>
+          <div class="tag-row">
+            <span class="tag">22 minutes</span><span class="tag">1 bus</span><span class="tag">₹14 fare</span><span class="tag">AI recommended</span>
+          </div>
+        </div>
+      </div>
+      <div class="routes-layout" style="margin-top:18px">
+        <!-- Route 21C -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="21C">
+            <div class="route-left"><div class="route-badge" style="background:#38bdf8">21C</div><div class="route-meta"><h3>Thiruvanmiyur ↔ Koyambedu</h3><p>28 stops · 34 km · 55 min · ₹10–₹28 · 4 buses active</p></div></div>
+            <div class="route-right"><span class="status-chip active">On time</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel21C">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Thiruvanmiyur</span><span>18:15</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Lattice Bridge</span><span>18:22</span><span>2.1 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Adyar Signal</span><span>18:28</span><span>4.6 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Teynampet</span><span>18:48</span><span>12.4 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>T.Nagar</span><span>18:55</span><span>15.1 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Vadapalani</span><span>19:05</span><span>22.9 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Koyambedu</span><span>19:14</span><span>34 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- Route 23B -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="23B">
+            <div class="route-left"><div class="route-badge" style="background:#f59e0b">23B</div><div class="route-meta"><h3>Tambaram ↔ Broadway</h3><p>35 stops · 42 km · 75 min · ₹12–₹32 · 3 buses active</p></div></div>
+            <div class="route-right"><span class="status-chip delay">Delayed</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel23B">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Tambaram</span><span>18:05</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Pallavaram</span><span>18:14</span><span>6.2 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Guindy</span><span>18:33</span><span>17.8 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Saidapet</span><span>18:45</span><span>23.4 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Broadway</span><span>19:18</span><span>42 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- Route 47 -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="47">
+            <div class="route-left"><div class="route-badge" style="background:#22c55e">47</div><div class="route-meta"><h3>Perambur ↔ Velachery</h3><p>22 stops · 28 km · 45 min · ₹8–₹22 · 5 buses active</p></div></div>
+            <div class="route-right"><span class="status-chip active">On time</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel47">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Perambur</span><span>18:12</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Vepery</span><span>18:24</span><span>5.9 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Nungambakkam</span><span>18:34</span><span>10.6 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Guindy</span><span>18:48</span><span>19.4 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Velachery</span><span>19:01</span><span>28 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- Route 5B -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="5B">
+            <div class="route-left"><div class="route-badge" style="background:#8b5cf6">5B</div><div class="route-meta"><h3>Avadi ↔ Adyar</h3><p>40 stops · 48 km · 82 min · ₹14–₹38 · 4 buses active</p></div></div>
+            <div class="route-right"><span class="status-chip delay">Slight delay</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel5B">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Avadi</span><span>17:58</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Ambattur</span><span>18:16</span><span>9.1 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Anna Nagar</span><span>18:38</span><span>20.5 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Vadapalani</span><span>18:52</span><span>27.8 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Adyar</span><span>19:20</span><span>48 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- Route 19E -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="19E">
+            <div class="route-left"><div class="route-badge" style="background:#f59e0b">19E</div><div class="route-meta"><h3>Besant Nagar ↔ Poonamallee</h3><p>31 stops · 38 km · currently suspended</p></div></div>
+            <div class="route-right"><span class="status-chip critical">Cancelled</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel19E">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Besant Nagar</span><span>18:00</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Adyar</span><span>18:09</span><span>4.8 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Vadapalani</span><span>18:34</span><span>18.1 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Poonamallee</span><span>19:14</span><span>38 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- Metro Blue -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="M1">
+            <div class="route-left"><div class="route-badge" style="background:#3b82f6">M1</div><div class="route-meta"><h3>Washermanpet ↔ Airport Metro Link</h3><p>18 stations · 25 km · 36 min · high intermodal demand</p></div></div>
+            <div class="route-right"><span class="status-chip active">On time</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanelM1">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Washermanpet</span><span>18:08</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Central</span><span>18:16</span><span>5.2 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Alandur</span><span>18:33</span><span>16.8 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Airport</span><span>18:44</span><span>25 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- Metro Green -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="M2">
+            <div class="route-left"><div class="route-badge" style="background:#2ecc71">M2</div><div class="route-meta"><h3>St. Thomas Mount ↔ Wimco Nagar</h3><p>20 stations · 26 km · 38 min · interchange-heavy</p></div></div>
+            <div class="route-right"><span class="status-chip active">On time</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanelM2">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>St. Thomas Mount</span><span>18:10</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Koyambedu</span><span>18:27</span><span>12.6 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Central</span><span>18:36</span><span>19.4 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Wimco Nagar</span><span>18:48</span><span>26 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- 29C -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="29C">
+            <div class="route-left"><div class="route-badge" style="background:#38bdf8">29C</div><div class="route-meta"><h3>Perambur ↔ Marina Loop</h3><p>24 stops · 21 km · 46 min</p></div></div>
+            <div class="route-right"><span class="status-chip active">On time</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel29C">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Perambur</span><span>18:11</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Egmore</span><span>18:22</span><span>7.8 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Marina</span><span>18:34</span><span>14.2 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Foreshore Estate</span><span>18:42</span><span>21 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- 54F -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="54F">
+            <div class="route-left"><div class="route-badge" style="background:#f59e0b">54F</div><div class="route-meta"><h3>Tambaram ↔ Tidel Park</h3><p>29 stops · 32 km · 62 min · IT corridor</p></div></div>
+            <div class="route-right"><span class="status-chip delay">Busy</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel54F">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Tambaram</span><span>18:03</span><span>0 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Pallikaranai</span><span>18:22</span><span>11.6 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>OMR Junction</span><span>18:34</span><span>19.2 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Tidel Park</span><span>18:50</span><span>32 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+            </div>
+          </div>
+        </article>
+        <!-- 70A -->
+        <article class="route-accordion">
+          <div class="route-head" data-accordion="70A">
+            <div class="route-left"><div class="route-badge" style="background:#22c55e">70A</div><div class="route-meta"><h3>Poonamallee ↔ Parry's Corner</h3><p>30 stops · 35 km · 67 min · market belt</p></div></div>
+            <div class="route-right"><span class="status-chip active">On time</span><span>▼</span></div>
+          </div>
+          <div class="route-panel" id="routePanel70A">
+            <div class="stop-list">
+              <div class="stop-row"><span class="stop-dot"></span><span>Poonamallee</span><span>18:06</span><span>0 km</span><span class="crowd-dot" style="background:#22c55e"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Koyambedu</span><span>18:23</span><span>13.1 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Central</span><span>18:42</span><span>27.6 km</span><span class="crowd-dot" style="background:#ef4444"></span></div>
+              <div class="stop-row"><span class="stop-dot"></span><span>Parry's</span><span>18:50</span><span>35 km</span><span class="crowd-dot" style="background:#f59e0b"></span></div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── ANALYTICS ─────────────────────────────────────── -->
+    <section class="section" id="analytics">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Performance observability</div>
+          <h2>Analytics Command Center</h2>
+          <p class="section-lead">Animated KPIs, route performance scoring, hourly ridership shape, and ML quality metrics for hard numbers.</p>
+        </div>
+        <div class="tab-row">
+          <button class="mini-btn active">Today</button>
+          <button class="mini-btn">7 Days</button>
+          <button class="mini-btn">30 Days</button>
+          <button class="mini-btn">Custom</button>
+        </div>
+      </div>
+      <div class="kpi-grid">
+        <article class="kpi-card"><div class="kpi-icon">🚌</div><div class="kpi-value counter" data-target="847">0</div><div class="kpi-label">Total buses active</div><div class="kpi-change">↑ 12 from yesterday</div></article>
+        <article class="kpi-card"><div class="kpi-icon">👥</div><div class="kpi-value counter" data-target="2300000">0</div><div class="kpi-label">Passengers today</div><div class="kpi-change">↑ 3.4% vs average</div></article>
+        <article class="kpi-card"><div class="kpi-icon">⏱</div><div class="kpi-value">4.2 min</div><div class="kpi-label">Average delay</div><div class="kpi-change" style="color:#f59e0b">↑ 1.1 min from target</div></article>
+        <article class="kpi-card"><div class="kpi-icon">🤖</div><div class="kpi-value">94.7%</div><div class="kpi-label">ML accuracy</div><div class="kpi-change">↑ 0.3% this week</div></article>
+        <article class="kpi-card"><div class="kpi-icon">⚡</div><div class="kpi-value counter" data-target="23">0</div><div class="kpi-label">Active routes</div><div class="kpi-change">→ steady state</div></article>
+        <article class="kpi-card"><div class="kpi-icon">💰</div><div class="kpi-value">₹4.2 Cr</div><div class="kpi-label">Revenue today</div><div class="kpi-change">↑ 8.2% vs last week</div></article>
+      </div>
+      <div class="analytics-grid">
+        <article class="chart-card wide analytics-card">
+          <small>Ridership curve</small><h3>Hourly Ridership</h3>
+          <div class="chart-bars">
+            <div><span style="height:16%"></span><label>5A</label></div>
+            <div><span style="height:30%"></span><label>6A</label></div>
+            <div class="peak"><span style="height:88%"></span><label>7A</label></div>
+            <div class="peak"><span style="height:96%"></span><label>8A</label></div>
+            <div class="peak"><span style="height:84%"></span><label>9A</label></div>
+            <div><span style="height:56%"></span><label>10A</label></div>
+            <div><span style="height:48%"></span><label>11A</label></div>
+            <div><span style="height:53%"></span><label>12P</label></div>
+            <div><span style="height:50%"></span><label>1P</label></div>
+            <div><span style="height:45%"></span><label>2P</label></div>
+            <div><span style="height:56%"></span><label>3P</label></div>
+            <div><span style="height:65%"></span><label>4P</label></div>
+            <div class="peak"><span style="height:100%"></span><label>5P</label></div>
+            <div class="peak"><span style="height:93%"></span><label>6P</label></div>
+            <div class="now"><span style="height:76%"></span><label>7P</label></div>
+            <div><span style="height:42%"></span><label>8P</label></div>
+          </div>
+        </article>
+        <article class="chart-card analytics-card">
+          <small>Route performance</small><h3>Route Scoreboard</h3>
+          <div class="perf-table">
+            <div class="perf-row"><strong style="color:#38bdf8">21C</strong><span>89%</span><div class="line-meter"><span style="width:89%"></span></div></div>
+            <div class="perf-row"><strong style="color:#f59e0b">23B</strong><span>67%</span><div class="line-meter"><span style="width:67%;background:#f59e0b"></span></div></div>
+            <div class="perf-row"><strong style="color:#22c55e">47</strong><span>94%</span><div class="line-meter"><span style="width:94%"></span></div></div>
+            <div class="perf-row"><strong style="color:#8b5cf6">5B</strong><span>82%</span><div class="line-meter"><span style="width:82%;background:#8b5cf6"></span></div></div>
+            <div class="perf-row"><strong style="color:#f59e0b">19E</strong><span>45%</span><div class="line-meter"><span style="width:45%;background:#ef4444"></span></div></div>
+          </div>
+        </article>
+        <article class="analytics-card" style="grid-column:span 3">
+          <small>ML quality panel</small><h3>GradientBoost v2.4</h3>
+          <div class="ml-grid">
+            <article><small>Accuracy</small><strong>94.7%</strong></article>
+            <article><small>Precision</small><strong>93.2%</strong></article>
+            <article><small>Recall</small><strong>95.1%</strong></article>
+            <article><small>F1 Score</small><strong>0.941</strong></article>
+            <article><small>MAE</small><strong>1.8 min</strong></article>
+            <article><small>RMSE</small><strong>2.4</strong></article>
+            <article><small>Training rows</small><strong>2.4M</strong></article>
+            <article><small>Features</small><strong>47</strong></article>
+          </div>
+          <div class="fi-list">
+            <div class="fi-row"><span>Traffic density</span><div class="line-meter"><span style="width:91%"></span></div><strong>91%</strong></div>
+            <div class="fi-row"><span>Time of day</span><div class="line-meter"><span style="width:87%"></span></div><strong>87%</strong></div>
+            <div class="fi-row"><span>Day of week</span><div class="line-meter"><span style="width:74%"></span></div><strong>74%</strong></div>
+            <div class="fi-row"><span>Weather</span><div class="line-meter"><span style="width:62%"></span></div><strong>62%</strong></div>
+            <div class="fi-row"><span>Historical avg</span><div class="line-meter"><span style="width:58%"></span></div><strong>58%</strong></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ── ADMIN WAR ROOM ─────────────────────────────────── -->
+    <section class="section" id="admin">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-dot"></span> Operator control surface</div>
+          <h2>Admin War Room</h2>
+          <p class="section-lead">Dispatch controls, incident stream, system metrics, and live service telemetry in a futuristic operations bunker.</p>
+        </div>
+        <div class="tab-row">
+          <div class="tag">Admin Ravi K.</div>
+          <div class="tag">Access CMTA-ROOT</div>
+          <div class="tag">Audit mode active</div>
+        </div>
+      </div>
+      <div class="war-room">
+        <article class="admin-card">
+          <small>Dispatch control</small><h3>Fleet actions</h3>
+          <div class="dispatch-list">
+            <div class="dispatch-item"><span>TN-01-BX-4421 · 21C</span><span class="status-chip active">Active</span><button class="mini-btn">Ping</button></div>
+            <div class="dispatch-item"><span>TN-04-N-8834 · 23B</span><span class="status-chip delay">Delayed</span><button class="mini-btn">Alert</button></div>
+            <div class="dispatch-item"><span>TN-09-X-2217 · 47</span><span class="status-chip active">Active</span><button class="mini-btn">Track</button></div>
+            <div class="dispatch-item"><span>TN-15-Z-4430 · 5B</span><span class="status-chip delay">Late</span><button class="mini-btn">Boost</button></div>
+            <div class="dispatch-item"><span>TN-22-F-7711 · 19E</span><span class="status-chip critical">Stopped</span><button class="mini-btn">Recover</button></div>
+          </div>
+        </article>
+        <article class="admin-card">
+          <small>Incident log</small><h3>Operational disruptions</h3>
+          <div class="incident-list">
+            <div class="incident-item"><strong>18:32</strong><span>Accident at Guindy Signal affecting 23B corridor</span><span class="status-chip critical">Open</span></div>
+            <div class="incident-item"><strong>17:45</strong><span>Bus TN-19E-002 breakdown near Vadapalani</span><span class="status-chip delay">In prog</span></div>
+            <div class="incident-item"><strong>16:20</strong><span>GPS signal lost for TN-47-009, recovered</span><span class="status-chip active">Resolved</span></div>
+            <div class="incident-item"><strong>15:05</strong><span>Short metro platform congestion at Central handled</span><span class="status-chip active">Resolved</span></div>
+          </div>
+        </article>
+        <article class="admin-card">
+          <small>System metrics</small><h3>Infrastructure telemetry</h3>
+          <div class="system-list">
+            <div class="system-row"><span>CPU</span><div class="sys-bar"><span id="cpuBar" style="width:34%"></span></div><strong id="cpuLabel">34%</strong></div>
+            <div class="system-row"><span>RAM</span><div class="sys-bar"><span id="ramBar" style="width:61%"></span></div><strong id="ramLabel">61%</strong></div>
+            <div class="system-row"><span>GPS msgs/s</span><div class="sys-bar"><span style="width:84%"></span></div><strong>847</strong></div>
+            <div class="system-row"><span>WS clients</span><div class="sys-bar"><span style="width:46%"></span></div><strong>2341</strong></div>
+            <div class="system-row"><span>DB q/s</span><div class="sys-bar"><span style="width:55%"></span></div><strong>1204</strong></div>
+            <div class="system-row"><span>ML infer/s</span><div class="sys-bar"><span style="width:31%"></span></div><strong>42</strong></div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- VOICE MODAL -->
+  <div class="voice-modal" id="voiceModal">
+    <div class="voice-card">
+      <div class="voice-orb">🎤</div>
+      <h3>MetroMind Voice Assistant</h3>
+      <p>Ask about the next bus, crowd at a stop, route delays, or the fastest way to the airport.</p>
+      <div class="voice-box" id="voiceOutput">Tap a suggestion below or use speech recognition if your browser supports it.</div>
+      <div class="voice-suggestions">
+        <button class="mini-btn voice-prompt" data-voice="next bus to t nagar">Next bus to T.Nagar?</button>
+        <button class="mini-btn voice-prompt" data-voice="is 23b delayed">Is 23B delayed?</button>
+        <button class="mini-btn voice-prompt" data-voice="crowd at guindy">Crowd at Guindy?</button>
+        <button class="mini-btn voice-prompt" data-voice="best route to airport">Best route to Airport?</button>
+      </div>
+      <div class="chip-row" style="justify-content:center;margin-top:16px">
+        <button class="hero-btn secondary" id="closeVoice">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OFFLINE BANNER -->
+  <div class="offline-banner" id="offlineBanner">
+    <span>Offline mode active. Showing cached transit data from the last synchronized network pulse.</span>
+    <button class="mini-btn" id="reconnectBtn">Reconnect</button>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script>
+    const BUS_DATA = [
+      { id:"TN-01-BX-4421", route:"21C", speed:42, occupancy:67, eta:4,  nextStop:"T.Nagar",   driver:"Rajan K.",   ac:"Yes", status:"On time" },
+      { id:"TN-33-K-9902",  route:"21C", speed:38, occupancy:44, eta:12, nextStop:"Adyar",     driver:"Balan T.",   ac:"Yes", status:"On time" },
+      { id:"TN-04-N-8834",  route:"23B", speed:22, occupancy:94, eta:11, nextStop:"Guindy",    driver:"Murugan S.", ac:"No",  status:"Delayed" },
+      { id:"TN-41-B-1123",  route:"23B", speed:25, occupancy:81, eta:24, nextStop:"Tambaram",  driver:"Suresh N.",  ac:"Yes", status:"Delayed" },
+      { id:"TN-09-X-2217",  route:"47",  speed:47, occupancy:28, eta:7,  nextStop:"Perambur",  driver:"Selvam R.",  ac:"Yes", status:"On time" },
+      { id:"TN-07-D-3344",  route:"47",  speed:45, occupancy:31, eta:15, nextStop:"Velachery", driver:"Raj M.",     ac:"No",  status:"On time" },
+      { id:"TN-15-Z-4430",  route:"5B",  speed:31, occupancy:55, eta:9,  nextStop:"Anna Nagar",driver:"Kannan P.",  ac:"No",  status:"Slight delay" },
+      { id:"TN-22-F-7711",  route:"19E", speed:0,  occupancy:0,  eta:35, nextStop:"N/A",       driver:"N/A",        ac:"No",  status:"Cancelled" }
+    ];
+
+    const ETA_STATE = { "21C":4, "23B":11, "47":7, "5B":9, "METROBLUE":3, "19E":35 };
+
+    const ALERT_TEMPLATES = [
+      { type:"approaching", icon:"🚌", title:"Bus {route} approaching", body:"Vehicle {bus} arriving at {stop} in {eta} minutes." },
+      { type:"delayed",     icon:"⏰", title:"Route {route} delayed",   body:"Traffic drag at {stop}. Delay now estimated at {eta} minutes." },
+      { type:"critical",    icon:"⚠️", title:"Critical route disruption",body:"{route} has a disruption near {stop}. Recovery team engaged." },
+      { type:"ontime",      icon:"✅", title:"Service normalized",       body:"{route} has returned to schedule near {stop}." }
+    ];
+    const ROUTE_IDS = ["21C","23B","47","5B","19E","M1","M2"];
+    const STOPS = ["T.Nagar","Guindy","Adyar","Koyambedu","Velachery","Central","Tambaram","Anna Nagar"];
+
+    let soundEnabled = true;
+    let offlineMode  = false;
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clockBox").innerHTML =
+        now.toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit",second:"2-digit"}) +
+        "<br><span style='font-size:0.72rem;color:var(--dim)'>" +
+        now.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"}) + "</span>";
+    }
+
+    // Particles
+    function initParticles() {
+      const canvas = document.getElementById("particleCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      let w = 0, h = 0, particles = [];
+      function resize() { w = canvas.offsetWidth; h = canvas.offsetHeight; canvas.width = w; canvas.height = h; }
+      function seed() {
+        particles = Array.from({length:70}, () => ({
+          x:Math.random()*w, y:Math.random()*h,
+          vx:(Math.random()-.5)*.4, vy:(Math.random()-.5)*.4,
+          size:Math.random()*2+.8,
+          color:Math.random()>.8?"#f59e0b":Math.random()>.5?"#38bdf8":"#22c55e",
+          alpha:Math.random()*.6+.15
+        }));
+      }
+      function draw() {
+        ctx.clearRect(0,0,w,h);
+        particles.forEach(p => {
+          p.x+=p.vx; p.y+=p.vy;
+          if(p.x<=0||p.x>=w) p.vx*=-1;
+          if(p.y<=0||p.y>=h) p.vy*=-1;
+          ctx.globalAlpha=p.alpha; ctx.fillStyle=p.color;
+          ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2); ctx.fill();
+        });
+        ctx.globalAlpha=.06;
+        for(let i=0;i<particles.length;i++) for(let j=i+1;j<particles.length;j++) {
+          const d=Math.hypot(particles[i].x-particles[j].x,particles[i].y-particles[j].y);
+          if(d<120){ ctx.strokeStyle="#38bdf8"; ctx.lineWidth=.4; ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke(); }
+        }
+        ctx.globalAlpha=1;
+        requestAnimationFrame(draw);
+      }
+      resize(); seed(); draw();
+      window.addEventListener("resize",()=>{resize();seed();});
+    }
+
+    // Counters
+    function initCounters() {
+      const fmt = new Intl.NumberFormat("en-IN");
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const el = entry.target;
+          const target = Number(el.dataset.target||0);
+          const start = performance.now(), dur = 1800;
+          const tick = now => {
+            const p = Math.min((now-start)/dur,1);
+            el.textContent = fmt.format(Math.round(target*(1-Math.pow(1-p,3))));
+            if (p<1) requestAnimationFrame(tick); else el.textContent=fmt.format(target);
+          };
+          requestAnimationFrame(tick);
+          io.unobserve(el);
+        });
+      },{threshold:.35});
+      document.querySelectorAll(".counter").forEach(el=>io.observe(el));
+    }
+
+    // Navigation
+    function initNavigation() {
+      document.querySelectorAll("[data-scroll]").forEach(btn =>
+        btn.addEventListener("click", () => document.getElementById(btn.dataset.scroll)?.scrollIntoView({behavior:"smooth"}))
+      );
+      const links = [...document.querySelectorAll("#sideNav a")];
+      const io = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (!e.isIntersecting) return;
+          const id = "#"+e.target.id;
+          links.forEach(l => l.classList.toggle("active", l.getAttribute("href")===id));
+        });
+      },{threshold:.3});
+      document.querySelectorAll("main .section").forEach(s=>io.observe(s));
+    }
+
+    // Map popup
+    function initMapPopup() {
+      const popup = document.getElementById("mapPopup");
+      document.querySelectorAll(".bus-vehicle").forEach(node => {
+        node.addEventListener("click", () => {
+          const bus = BUS_DATA.find(b=>b.id===node.dataset.bus)||BUS_DATA[0];
+          document.getElementById("popupRoute").textContent     = bus.route;
+          document.getElementById("popupStatus").textContent    = bus.status;
+          document.getElementById("popupBus").textContent       = bus.id;
+          document.getElementById("popupSpeed").textContent     = bus.speed+" km/h";
+          document.getElementById("popupOccupancy").textContent = bus.occupancy+"%";
+          document.getElementById("popupEta").textContent       = bus.eta+" min";
+          document.getElementById("popupStop").textContent      = bus.nextStop;
+          document.getElementById("popupSeats").textContent     = Math.max(0, Math.round(50-bus.occupancy/100*50));
+          document.getElementById("popupDriver").textContent    = bus.driver;
+          document.getElementById("popupAc").textContent        = bus.ac;
+          popup.classList.add("open");
+        });
+      });
+      document.getElementById("popupClose").addEventListener("click",()=>popup.classList.remove("open"));
+    }
+
+    // Map layers & refresh
+    function initMapLayers() {
+      document.querySelectorAll(".map-filter").forEach(btn => {
+        btn.addEventListener("click", () => {
+          btn.classList.toggle("active");
+          const map = {buses:".layer-buses", metro:".layer-metro", stops:".layer-stops"};
+          if (map[btn.dataset.layer]) {
+            document.querySelectorAll(map[btn.dataset.layer]).forEach(n =>
+              n.style.display = btn.classList.contains("active") ? "" : "none");
+          }
+        });
+      });
+      document.getElementById("mapRefresh").addEventListener("click",()=>{ updateGpsBox(); toast("Map refreshed with latest GPS mesh.","info"); });
+    }
+
+    function updateGpsBox() {
+      document.getElementById("gpsLat").textContent=(13.0827+(Math.random()-.5)*.01).toFixed(4);
+      document.getElementById("gpsLon").textContent=(80.2707+(Math.random()-.5)*.01).toFixed(4);
+      document.getElementById("gpsAlt").textContent=(6.2+Math.random()*1.8).toFixed(1)+"m";
+      document.getElementById("gpsSat").textContent=(8+Math.floor(Math.random()*4))+"/12";
+    }
+
+    // ETA
+    function initEtaRefresh() {
+      document.getElementById("refreshEta").addEventListener("click", e => {
+        const btn = e.currentTarget;
+        btn.textContent="Refreshing..."; btn.disabled=true;
+        setTimeout(()=>{ document.getElementById("etaUpdated").textContent="Updated just now"; btn.textContent="Refresh Predictions"; btn.disabled=false; toast("ETA predictions refreshed.","success"); },1400);
+      });
+    }
+
+    function tickEta() {
+      Object.keys(ETA_STATE).forEach(key => {
+        const el = document.getElementById("eta"+key);
+        if (!el || key==="19E") return;
+        ETA_STATE[key] = ETA_STATE[key]-1;
+        if (ETA_STATE[key]<=0) { toast(key+" arriving now!","info"); ETA_STATE[key]=Math.floor(Math.random()*8)+6; }
+        el.textContent = ETA_STATE[key];
+        el.style.color = ETA_STATE[key]<=3?"#ef4444":ETA_STATE[key]<=6?"#f59e0b":"var(--cyan)";
+      });
+      document.getElementById("etaUpdated").textContent="Updated "+new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+    }
+
+    // Alerts
+    function initAlerts() {
+      document.querySelectorAll(".alert-filter").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".alert-filter").forEach(b=>b.classList.remove("active"));
+          btn.classList.add("active");
+          const f = btn.dataset.filter;
+          document.querySelectorAll(".alert-card").forEach(c =>
+            c.style.display = f==="all"||c.dataset.type===f ? "grid" : "none");
+        });
+      });
+      document.getElementById("soundToggle").addEventListener("click", e => {
+        soundEnabled=!soundEnabled;
+        e.currentTarget.textContent=soundEnabled?"🔔":"🔕";
+        toast(soundEnabled?"Alert sound enabled.":"Alert sound muted.","info");
+      });
+    }
+
+    function createAlert() {
+      const tmpl  = ALERT_TEMPLATES[Math.floor(Math.random()*ALERT_TEMPLATES.length)];
+      const route = ROUTE_IDS[Math.floor(Math.random()*ROUTE_IDS.length)];
+      const stop  = STOPS[Math.floor(Math.random()*STOPS.length)];
+      const bus   = BUS_DATA[Math.floor(Math.random()*BUS_DATA.length)].id;
+      const eta   = Math.floor(Math.random()*12)+2;
+      const art   = document.createElement("article");
+      art.className="alert-card dashboard-card "+tmpl.type;
+      art.dataset.type=tmpl.type;
+      art.innerHTML=`<div class="alert-icon">${tmpl.icon}</div><div>
+        <div class="alert-head"><h3>${tmpl.title.replace("{route}",route)}</h3><div class="alert-time">just now</div></div>
+        <div class="alert-body">${tmpl.body.replace("{route}",route).replace("{bus}",bus).replace("{stop}",stop).replace("{eta}",eta)}</div>
+        <div class="tag-row"><span class="tag">${route}</span><span class="tag">${stop}</span></div></div>`;
+      const feed=document.getElementById("alertFeed");
+      feed.prepend(art);
+      while(feed.children.length>12) feed.removeChild(feed.lastElementChild);
+      const badge=document.getElementById("alertBadge");
+      badge.textContent=String(Number(badge.textContent)+1);
+      document.getElementById("alertsPerMin").textContent=String(8+Math.floor(Math.random()*8));
+    }
+
+    // Crowd gauges
+    function initCrowdMotion() {
+      setInterval(()=>{
+        const g1=document.getElementById("gauge21C"), g2=document.getElementById("gauge23B");
+        if(g1) g1.setAttribute("stroke-dashoffset",String(88+Math.round(Math.random()*12)));
+        if(g2) g2.setAttribute("stroke-dashoffset",String(14+Math.round(Math.random()*14)));
+        document.getElementById("crowdUpdated").textContent="Live "+new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+      },5000);
+    }
+
+    // Journey planner
+    function initJourneyPlanner() {
+      const from=document.getElementById("journeyFrom"), to=document.getElementById("journeyTo");
+      document.getElementById("swapStops").addEventListener("click",()=>{ const t=from.value; from.value=to.value; to.value=t; });
+      document.getElementById("planJourney").addEventListener("click",()=>{
+        if(!from.value||!to.value){ toast("Select both stops.","warning"); return; }
+        document.getElementById("journeyResult").classList.add("show");
+        toast("Journey planned: "+from.value+" → "+to.value,"success");
+      });
+    }
+
+    // Accordions
+    function initAccordions() {
+      document.querySelectorAll(".route-head").forEach(head => {
+        head.addEventListener("click",()=>{
+          const panel=document.getElementById("routePanel"+head.dataset.accordion);
+          if(panel) panel.classList.toggle("open");
+        });
+      });
+    }
+
+    // Voice
+    function initVoice() {
+      const modal=document.getElementById("voiceModal"), output=document.getElementById("voiceOutput");
+      document.getElementById("voiceButton").addEventListener("click",()=>modal.classList.add("open"));
+      document.getElementById("closeVoice").addEventListener("click",()=>modal.classList.remove("open"));
+      document.querySelectorAll(".voice-prompt").forEach(btn => {
+        btn.addEventListener("click",()=>{
+          const q=btn.dataset.voice;
+          let r="I can help with buses, crowds, delays, and routes.";
+          if(q.includes("next bus")) r="Next bus to T.Nagar is Route 21C in 4 minutes with moderate crowd and 18 seats left.";
+          if(q.includes("23b"))      r="Route 23B is delayed by 7 minutes due to an accident near Guindy Signal.";
+          if(q.includes("crowd"))    r="Guindy is seeing high boarding pressure. Route 47 has LOW crowd right now.";
+          if(q.includes("airport"))  r="Best route to Airport: Metro Blue Line from Koyambedu. Next train in 3 minutes, total ride 25 minutes.";
+          output.textContent=r;
+          if("speechSynthesis" in window){ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(r); u.lang="en-IN"; u.rate=1.02; speechSynthesis.speak(u); }
+        });
+      });
+    }
+
+    // Offline
+    function initOffline() {
+      const banner=document.getElementById("offlineBanner"), stateEl=document.getElementById("offlineState");
+      function render(){ banner.classList.toggle("show",offlineMode); stateEl.textContent=offlineMode?"ON":"OFF"; }
+      document.getElementById("offlineToggle").addEventListener("click",()=>{ offlineMode=!offlineMode; render(); toast(offlineMode?"Offline mode enabled.":"Live network restored.",offlineMode?"warning":"success"); });
+      document.getElementById("reconnectBtn").addEventListener("click",()=>{ offlineMode=false; render(); toast("Reconnected to Chennai transit network.","success"); });
+      render();
+    }
+
+    // System metrics
+    function initSystemMetrics() {
+      setInterval(()=>{
+        const cpu=Math.round(28+Math.random()*22), ram=Math.round(52+Math.random()*18);
+        document.getElementById("cpuBar").style.width=cpu+"%";
+        document.getElementById("ramBar").style.width=ram+"%";
+        document.getElementById("cpuLabel").textContent=cpu+"%";
+        document.getElementById("ramLabel").textContent=ram+"%";
+      },4000);
+    }
+
+    // Toast
+    function toast(msg, kind) {
+      const wrap=document.getElementById("toastWrap");
+      const node=document.createElement("div");
+      node.className="toast";
+      const borders={success:"rgba(34,197,94,0.22)",warning:"rgba(245,158,11,0.22)",info:"rgba(56,189,248,0.22)"};
+      node.style.borderColor=borders[kind]||"rgba(255,255,255,0.08)";
+      node.textContent=msg;
+      wrap.appendChild(node);
+      setTimeout(()=>node.remove(),5000);
+    }
+
+    // Boot
+    function boot() {
+      updateClock();
+      setInterval(updateClock, 1000);
+      initParticles();
+      initCounters();
+      initNavigation();
+      initMapPopup();
+      initMapLayers();
+      updateGpsBox();
+      setInterval(updateGpsBox, 3000);
+      initEtaRefresh();
+      setInterval(tickEta, 6000);
+      initAlerts();
+      setInterval(createAlert, 9000);
+      initCrowdMotion();
+      initJourneyPlanner();
+      initAccordions();
+      initVoice();
+      initOffline();
+      initSystemMetrics();
+    }
+    document.addEventListener("DOMContentLoaded", boot);
+  </script>
+</body>
+</html>
